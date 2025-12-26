@@ -8,6 +8,10 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Week from "./pages/Week";
+import Settings from "./pages/Settings";
+import Habits from "./pages/Habits";
+import Projects from "./pages/Projects";
+import Calendar from "./pages/Calendar";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,9 +29,10 @@ const App = () => (
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/week" element={<Week />} />
             <Route path="/today" element={<Index />} />
-            <Route path="/projects" element={<Index />} />
-            <Route path="/habits" element={<Index />} />
-            <Route path="/settings" element={<Index />} />
+            <Route path="/projects" element={<Projects />} />
+            <Route path="/habits" element={<Habits />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/calendar" element={<Calendar />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

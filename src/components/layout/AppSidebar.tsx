@@ -8,6 +8,7 @@ import {
   FolderKanban,
   Repeat,
   Settings,
+  CalendarClock,
   LogOut,
   Zap,
   Plus,
@@ -95,6 +96,7 @@ export function AppSidebar() {
         
         <NavItem to="/projects" icon={FolderKanban} label="Projects" collapsed={collapsed} />
         <NavItem to="/habits" icon={Repeat} label="Habits" collapsed={collapsed} />
+        <NavItem to="/calendar" icon={CalendarClock} label="Calendar Sync" collapsed={collapsed} />
         <NavItem to="/settings" icon={Settings} label="Settings" collapsed={collapsed} />
       </nav>
 
