@@ -18,10 +18,12 @@ export default function AuthPage() {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (user) {
+    console.log('[Auth] User state changed:', { user: user?.email, authLoading });
+    if (user && !authLoading) {
+      console.log('[Auth] Redirecting to homepage');
       navigate('/', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   // Show loading state while checking auth
   if (authLoading) {
@@ -118,6 +120,7 @@ export default function AuthPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
+                  autoComplete="email"
                   required
                 />
               </div>
@@ -136,6 +139,7 @@ export default function AuthPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
                   minLength={6}
                   required
                 />
