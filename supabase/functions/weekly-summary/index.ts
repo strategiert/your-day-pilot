@@ -186,8 +186,7 @@ serve(async (req) => {
     });
 
     if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errorText);
+      console.error('AI API error: status', aiResponse.status);
       throw new Error('Failed to generate analysis');
     }
 
@@ -217,8 +216,8 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Weekly summary error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Weekly summary error:', message);
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
