@@ -135,8 +135,7 @@ serve(async (req) => {
     );
 
     if (!calendarResponse.ok) {
-      const errorText = await calendarResponse.text();
-      console.error("Google Calendar API error:", errorText);
+      console.error("Google Calendar API error: status", calendarResponse.status);
       
       if (calendarResponse.status === 401) {
         // Token invalid, mark connection as needs reconnect
@@ -204,7 +203,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("Sync error:", error);
+    console.error("Sync error:", error instanceof Error ? error.message : "Unknown error");
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -11,7 +11,26 @@ serve(async (req) => {
   }
 
   try {
-    const { input } = await req.json();
+    const body = await req.json();
+    const input = body?.input;
+    
+    // Input validation
+    if (!input || typeof input !== 'string') {
+      return new Response(
+        JSON.stringify({ error: "Invalid input: must be a non-empty string" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Limit input length to prevent abuse
+    const MAX_INPUT_LENGTH = 2000;
+    if (input.length > MAX_INPUT_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `Input too long: max ${MAX_INPUT_LENGTH} characters` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -87,8 +106,7 @@ Use the parse_task tool to return the parsed data.`;
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("AI gateway error: status", response.status);
       
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
@@ -106,7 +124,6 @@ Use the parse_task tool to return the parsed data.`;
     }
 
     const data = await response.json();
-    console.log("AI response:", JSON.stringify(data));
 
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall || toolCall.function.name !== "parse_task") {
@@ -114,7 +131,7 @@ Use the parse_task tool to return the parsed data.`;
     }
 
     const parsedTask = JSON.parse(toolCall.function.arguments);
-    console.log("Parsed task:", parsedTask);
+    console.log("Task parsed successfully");
 
     return new Response(JSON.stringify({ parsed: parsedTask }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
