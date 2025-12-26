@@ -1,11 +1,12 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { WeekCalendar } from '@/components/calendar/WeekCalendar';
 import { TaskList } from '@/components/tasks/TaskList';
+import { WeeklySummaryDialog } from '@/components/WeeklySummaryDialog';
 import { useScheduler } from '@/hooks/useScheduler';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Loader2, RefreshCw } from 'lucide-react';
+import { Sparkles, Loader2 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 
 export default function WeekPage() {
@@ -39,6 +40,7 @@ export default function WeekPage() {
             <p className="text-sm text-muted-foreground">Plan and optimize your week</p>
           </div>
           <div className="flex items-center gap-3">
+            <WeeklySummaryDialog />
             <Button
               variant="glow"
               onClick={() => schedule()}
