@@ -196,7 +196,7 @@ export function TaskList() {
     createTask({
       title: formData.title,
       description: formData.description || undefined,
-      project_id: formData.project_id || undefined,
+      project_id: formData.project_id && formData.project_id !== 'none' ? formData.project_id : undefined,
       priority: formData.priority,
       due_ts: formData.due_ts || undefined,
       est_min: formData.est_min,
@@ -304,7 +304,7 @@ export function TaskList() {
                       <SelectValue placeholder="No project" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No project</SelectItem>
+                      <SelectItem value="none">No project</SelectItem>
                       {projects.map(p => (
                         <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                       ))}
