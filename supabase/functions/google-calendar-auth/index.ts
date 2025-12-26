@@ -1,10 +1,58 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
+import { encode as base64Encode, decode as base64Decode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Encryption helpers using AES-GCM
+async function getEncryptionKey(keyString: string): Promise<CryptoKey> {
+  const keyData = new TextEncoder().encode(keyString.padEnd(32, '0').slice(0, 32));
+  return await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
+async function encryptTokens(tokens: Record<string, unknown>, keyString: string): Promise<string> {
+  const key = await getEncryptionKey(keyString);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = new TextEncoder().encode(JSON.stringify(tokens));
+
+  const encrypted = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    data
+  );
+
+  // Combine IV and encrypted data
+  const combined = new Uint8Array(iv.length + encrypted.byteLength);
+  combined.set(iv);
+  combined.set(new Uint8Array(encrypted), iv.length);
+
+  return base64Encode(combined);
+}
+
+async function decryptTokens(encryptedData: string, keyString: string): Promise<Record<string, unknown>> {
+  const key = await getEncryptionKey(keyString);
+  const combined = base64Decode(encryptedData);
+
+  const iv = combined.slice(0, 12);
+  const encrypted = combined.slice(12);
+
+  const decrypted = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    key,
+    encrypted
+  );
+
+  return JSON.parse(new TextDecoder().decode(decrypted));
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -18,11 +66,20 @@ serve(async (req) => {
     const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const ENCRYPTION_KEY = Deno.env.get("ENCRYPTION_KEY");
 
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
       return new Response(
         JSON.stringify({ error: "Google OAuth not configured. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!ENCRYPTION_KEY) {
+      console.error("ENCRYPTION_KEY is not configured - tokens will not be encrypted!");
+      return new Response(
+        JSON.stringify({ error: "Server encryption not configured. Contact administrator." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -98,18 +155,23 @@ serve(async (req) => {
         );
       }
 
-      // Store tokens in calendar_connections
+      // Encrypt tokens before storing
+      const tokensToStore = {
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        expires_at: Date.now() + tokens.expires_in * 1000,
+      };
+
+      const encryptedTokens = await encryptTokens(tokensToStore, ENCRYPTION_KEY);
+
+      // Store encrypted tokens in calendar_connections
       const { error: insertError } = await supabase
         .from("calendar_connections")
         .upsert({
           user_id: user.id,
           provider: "google",
           status: "connected",
-          tokens_json: {
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
-            expires_at: Date.now() + tokens.expires_in * 1000,
-          },
+          tokens_json: encryptedTokens, // Store as encrypted string
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id,provider" });
 

@@ -1,5 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+
+// Validation schema for parsed task
+const ParsedTaskSchema = z.object({
+  title: z.string().min(1).max(500),
+  due_ts: z.string().datetime().optional(),
+  est_min: z.number().int().min(1).max(1440).optional(), // Max 24 hours
+  priority: z.enum(["p1", "p2", "p3", "p4"]).optional(),
+  energy: z.enum(["low", "medium", "high"]).optional(),
+  preferred_window: z.enum(["morning", "afternoon", "evening", "any"]).optional(),
+  hard_deadline: z.boolean().optional(),
+});
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -155,9 +167,23 @@ Use the parse_task tool to return the parsed data.`;
     }
 
     const parsedTask = JSON.parse(toolCall.function.arguments);
-    console.log("Task parsed successfully");
 
-    return new Response(JSON.stringify({ parsed: parsedTask }), {
+    // Validate AI response with Zod schema
+    const validationResult = ParsedTaskSchema.safeParse(parsedTask);
+    if (!validationResult.success) {
+      console.error("AI response validation failed:", validationResult.error);
+      return new Response(
+        JSON.stringify({
+          error: "Invalid task format from AI",
+          details: validationResult.error.errors
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Task parsed and validated successfully");
+
+    return new Response(JSON.stringify({ parsed: validationResult.data }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
