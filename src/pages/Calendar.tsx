@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useEvents } from '@/hooks/useEvents';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useAuth } from '@/contexts/AuthContext';
 import { CalendarEvent } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -17,10 +18,14 @@ import {
   Loader2,
   FileText,
   Check,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
+  Link2,
+  Unlink,
+  Chrome
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 
 // ICS Parser - simple implementation
@@ -137,6 +142,19 @@ function escapeICS(text: string): string {
 export default function CalendarPage() {
   const { user, loading: authLoading } = useAuth();
   const { events, isLoading, createEvent, isCreating } = useEvents();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { 
+    isConnected, 
+    lastSyncedAt, 
+    isLoading: isGoogleLoading,
+    isSyncing,
+    isConnecting,
+    connect,
+    disconnect,
+    sync,
+    handleOAuthCallback
+  } = useGoogleCalendar();
+  
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [importedEvents, setImportedEvents] = useState<Partial<CalendarEvent>[]>([]);
@@ -150,6 +168,22 @@ export default function CalendarPage() {
     end_ts: '',
     is_busy: true,
   });
+
+  // Handle OAuth callback
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (code && user) {
+      handleOAuthCallback(code)
+        .then(() => {
+          toast.success('Google Calendar connected!');
+          setSearchParams({});
+        })
+        .catch((err) => {
+          toast.error('Failed to connect: ' + (err.message || 'Unknown error'));
+          setSearchParams({});
+        });
+    }
+  }, [searchParams, user]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -313,7 +347,85 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* Google Calendar Card */}
+          <Card className="border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Chrome className="w-5 h-5 text-primary" />
+                Google Calendar
+              </CardTitle>
+              <CardDescription>
+                Sync events automatically from your Google Calendar
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isGoogleLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : isConnected ? (
+                <>
+                  <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                    <Check className="w-4 h-4" />
+                    Connected
+                    {lastSyncedAt && (
+                      <span className="text-muted-foreground">
+                        · Last synced {format(parseISO(lastSyncedAt), 'MMM d, h:mm a')}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => sync().then(data => {
+                        toast.success(`Synced ${data.synced} events from Google Calendar`);
+                      }).catch(err => {
+                        toast.error('Sync failed: ' + (err.message || 'Unknown error'));
+                      })}
+                      disabled={isSyncing}
+                    >
+                      {isSyncing ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                      )}
+                      Sync Now
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => {
+                        disconnect()
+                          .then(() => toast.success('Disconnected from Google Calendar'))
+                          .catch(() => toast.error('Failed to disconnect'));
+                      }}
+                    >
+                      <Unlink className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => connect().catch(err => {
+                    toast.error('Failed to start connection: ' + (err.message || 'Unknown error'));
+                  })}
+                  disabled={isConnecting}
+                >
+                  {isConnecting ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <Link2 className="w-4 h-4 mr-2" />
+                  )}
+                  Connect Google Calendar
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Import Card */}
           <Card>
             <CardHeader>
