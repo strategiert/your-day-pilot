@@ -91,7 +91,7 @@ serve(async (req) => {
       const tokens = await tokenResponse.json();
       
       if (tokens.error) {
-        console.error("Token exchange error:", tokens);
+        console.error("Token exchange failed:", tokens.error);
         return new Response(
           JSON.stringify({ error: tokens.error_description || "Failed to exchange code" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -114,7 +114,7 @@ serve(async (req) => {
         }, { onConflict: "user_id,provider" });
 
       if (insertError) {
-        console.error("DB insert error:", insertError);
+        console.error("Failed to save calendar connection for user");
         return new Response(
           JSON.stringify({ error: "Failed to save connection" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -163,7 +163,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("Google calendar auth error:", error);
+    console.error("Google calendar auth error:", error instanceof Error ? error.message : "Unknown error");
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
