@@ -7,51 +7,58 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Encryption helpers using AES-GCM
-async function getEncryptionKey(keyString: string): Promise<CryptoKey> {
-  const keyData = new TextEncoder().encode(keyString.padEnd(32, '0').slice(0, 32));
+// Encryption utilities
+async function getEncryptionKey(): Promise<CryptoKey> {
+  const keyString = Deno.env.get("TOKEN_ENCRYPTION_KEY");
+  if (!keyString || keyString.length < 32) {
+    throw new Error("TOKEN_ENCRYPTION_KEY must be at least 32 characters");
+  }
+  
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(keyString.slice(0, 32));
+  
   return await crypto.subtle.importKey(
     "raw",
     keyData,
-    { name: "AES-GCM", length: 256 },
+    { name: "AES-GCM" },
     false,
     ["encrypt", "decrypt"]
   );
 }
 
-async function encryptTokens(tokens: Record<string, unknown>, keyString: string): Promise<string> {
-  const key = await getEncryptionKey(keyString);
+async function encryptToken(token: string): Promise<string> {
+  const key = await getEncryptionKey();
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const data = new TextEncoder().encode(JSON.stringify(tokens));
-
+  const encoder = new TextEncoder();
+  
   const encrypted = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
     key,
-    data
+    encoder.encode(token)
   );
-
-  // Combine IV and encrypted data
-  const combined = new Uint8Array(iv.length + encrypted.byteLength);
+  
+  // Combine IV + encrypted data
+  const combined = new Uint8Array(iv.length + new Uint8Array(encrypted).length);
   combined.set(iv);
   combined.set(new Uint8Array(encrypted), iv.length);
-
-  return base64Encode(combined);
+  
+  return base64Encode(combined.buffer);
 }
 
-async function decryptTokens(encryptedData: string, keyString: string): Promise<Record<string, unknown>> {
-  const key = await getEncryptionKey(keyString);
-  const combined = base64Decode(encryptedData);
-
-  const iv = combined.slice(0, 12);
-  const encrypted = combined.slice(12);
-
+async function decryptToken(encryptedToken: string): Promise<string> {
+  const key = await getEncryptionKey();
+  const data = base64Decode(encryptedToken);
+  
+  const iv = data.slice(0, 12);
+  const encrypted = data.slice(12);
+  
   const decrypted = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv },
     key,
     encrypted
   );
-
-  return JSON.parse(new TextDecoder().decode(decrypted));
+  
+  return new TextDecoder().decode(decrypted);
 }
 
 serve(async (req) => {
@@ -66,20 +73,11 @@ serve(async (req) => {
     const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const ENCRYPTION_KEY = Deno.env.get("ENCRYPTION_KEY");
 
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
       return new Response(
         JSON.stringify({ error: "Google OAuth not configured. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (!ENCRYPTION_KEY) {
-      console.error("ENCRYPTION_KEY is not configured - tokens will not be encrypted!");
-      return new Response(
-        JSON.stringify({ error: "Server encryption not configured. Contact administrator." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -156,13 +154,8 @@ serve(async (req) => {
       }
 
       // Encrypt tokens before storing
-      const tokensToStore = {
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        expires_at: Date.now() + tokens.expires_in * 1000,
-      };
-
-      const encryptedTokens = await encryptTokens(tokensToStore, ENCRYPTION_KEY);
+      const encryptedAccessToken = await encryptToken(tokens.access_token);
+      const encryptedRefreshToken = tokens.refresh_token ? await encryptToken(tokens.refresh_token) : null;
 
       // Store encrypted tokens in calendar_connections
       const { error: insertError } = await supabase
@@ -171,7 +164,12 @@ serve(async (req) => {
           user_id: user.id,
           provider: "google",
           status: "connected",
-          tokens_json: encryptedTokens, // Store as encrypted string
+          tokens_json: {
+            access_token: encryptedAccessToken,
+            refresh_token: encryptedRefreshToken,
+            expires_at: Date.now() + tokens.expires_in * 1000,
+            encrypted: true,
+          },
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id,provider" });
 
@@ -232,3 +230,6 @@ serve(async (req) => {
     );
   }
 });
+
+// Export decrypt function for use by sync function
+export { decryptToken };
