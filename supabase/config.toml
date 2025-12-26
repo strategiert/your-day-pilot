@@ -1,1 +1,10 @@
 project_id = "ygsznjehglazxhjvqoxt"
+
+[functions.parse-task]
+verify_jwt = true
+
+[functions.google-calendar-auth]
+verify_jwt = true
+
+[functions.sync-google-calendar]
+verify_jwt = true

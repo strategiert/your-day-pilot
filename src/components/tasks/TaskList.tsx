@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
+import { useTaskParser, ParsedTask } from '@/hooks/useTaskParser';
 import { Task, TaskPriority, TaskStatus, EnergyLevel, TimeWindow } from '@/types';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -18,6 +19,8 @@ import {
   Trash2,
   Edit2,
   Loader2,
+  Sparkles,
+  Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -177,7 +180,10 @@ interface TaskFormData {
 export function TaskList() {
   const { tasks, isLoading, createTask, updateTask, deleteTask, isCreating } = useTasks();
   const { projects } = useProjects();
+  const { parseTask, isParsing } = useTaskParser();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [quickAddInput, setQuickAddInput] = useState('');
+  const quickAddRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<TaskFormData>({
     title: '',
     description: '',
@@ -190,6 +196,39 @@ export function TaskList() {
     preferred_window: 'any',
     hard_deadline: false,
   });
+
+  const handleQuickAdd = async () => {
+    if (!quickAddInput.trim() || isParsing) return;
+    
+    const parsed = await parseTask(quickAddInput);
+    if (parsed) {
+      // Format due_ts for datetime-local input if present
+      let formattedDueTs = '';
+      if (parsed.due_ts) {
+        try {
+          const date = new Date(parsed.due_ts);
+          formattedDueTs = format(date, "yyyy-MM-dd'T'HH:mm");
+        } catch {
+          formattedDueTs = '';
+        }
+      }
+      
+      setFormData({
+        title: parsed.title,
+        description: '',
+        project_id: '',
+        priority: parsed.priority || 'p3',
+        due_ts: formattedDueTs,
+        est_min: parsed.est_min || 30,
+        min_chunk_min: 15,
+        energy: parsed.energy || 'medium',
+        preferred_window: parsed.preferred_window || 'any',
+        hard_deadline: parsed.hard_deadline || false,
+      });
+      setIsDialogOpen(true);
+      setQuickAddInput('');
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,6 +280,43 @@ export function TaskList() {
 
   return (
     <div className="space-y-6">
+      {/* Quick Add Input */}
+      <div className="relative">
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-card border border-border focus-within:border-primary/50 transition-colors">
+          <Sparkles className="w-5 h-5 text-primary shrink-0" />
+          <input
+            ref={quickAddRef}
+            type="text"
+            value={quickAddInput}
+            onChange={(e) => setQuickAddInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleQuickAdd();
+              }
+            }}
+            placeholder="Quick add: 'Meeting with John tomorrow at 2pm for 1 hour'"
+            className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
+            disabled={isParsing}
+          />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleQuickAdd}
+            disabled={!quickAddInput.trim() || isParsing}
+          >
+            {isParsing ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1 ml-1">
+          AI will parse dates, times, duration, and priority from natural language
+        </p>
+      </div>
+
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Tasks</h2>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

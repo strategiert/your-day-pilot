@@ -1,14 +1,15 @@
-import { useState } from 'react';
-import { format, startOfWeek, addDays, addHours, isSameDay, parseISO, differenceInMinutes, setHours, setMinutes } from 'date-fns';
+import { useState, useCallback } from 'react';
+import { format, startOfWeek, addDays, addHours, isSameDay, parseISO, differenceInMinutes, setHours, setMinutes, addMinutes } from 'date-fns';
 import { useTasks } from '@/hooks/useTasks';
 import { useScheduleBlocks } from '@/hooks/useScheduleBlocks';
 import { useHabits } from '@/hooks/useHabits';
 import { useEvents } from '@/hooks/useEvents';
 import { ScheduleBlock, Task } from '@/types';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, Sparkles, Info, Clock, Flag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, Info, Clock, Flag, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { toast } from 'sonner';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const HOUR_HEIGHT = 60;
@@ -17,9 +18,11 @@ interface CalendarBlockProps {
   block: ScheduleBlock;
   dayStart: Date;
   onClick: () => void;
+  onDragStart: (e: React.DragEvent, block: ScheduleBlock) => void;
+  isDragging: boolean;
 }
 
-function CalendarBlock({ block, dayStart, onClick }: CalendarBlockProps) {
+function CalendarBlock({ block, dayStart, onClick, onDragStart, isDragging }: CalendarBlockProps) {
   const startTime = parseISO(block.start_ts);
   const endTime = parseISO(block.end_ts);
   
@@ -37,16 +40,24 @@ function CalendarBlock({ block, dayStart, onClick }: CalendarBlockProps) {
 
   return (
     <div
+      draggable
+      onDragStart={(e) => onDragStart(e, block)}
       className={cn(
-        'absolute left-1 right-1 rounded-lg p-2 cursor-pointer transition-all duration-200 overflow-hidden',
-        blockStyles[block.block_type]
+        'absolute left-1 right-1 rounded-lg p-2 cursor-grab active:cursor-grabbing transition-all duration-200 overflow-hidden group',
+        blockStyles[block.block_type],
+        isDragging && 'opacity-50 ring-2 ring-primary'
       )}
       style={{ top: `${top}px`, height: `${height}px` }}
       onClick={onClick}
     >
-      <div className="text-xs font-medium truncate">{block.title}</div>
-      <div className="text-xs text-muted-foreground">
-        {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
+      <div className="flex items-start gap-1">
+        <GripVertical className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-medium truncate">{block.title}</div>
+          <div className="text-xs text-muted-foreground">
+            {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -60,9 +71,11 @@ interface WeekCalendarProps {
 export function WeekCalendar({ selectedDate = new Date(), onDateChange }: WeekCalendarProps) {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(selectedDate, { weekStartsOn: 1 }));
   const [selectedBlock, setSelectedBlock] = useState<ScheduleBlock | null>(null);
+  const [draggingBlock, setDraggingBlock] = useState<ScheduleBlock | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ day: Date; hour: number } | null>(null);
   
   const weekEnd = addDays(currentWeekStart, 7);
-  const { blocks } = useScheduleBlocks(currentWeekStart, weekEnd);
+  const { blocks, updateBlock, isUpdating } = useScheduleBlocks(currentWeekStart, weekEnd);
   
   const days = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
 
@@ -76,6 +89,67 @@ export function WeekCalendar({ selectedDate = new Date(), onDateChange }: WeekCa
       return isSameDay(blockDate, day);
     });
   };
+
+  const handleDragStart = useCallback((e: React.DragEvent, block: ScheduleBlock) => {
+    e.dataTransfer.setData('text/plain', block.id);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingBlock(block);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, day: Date, columnElement: HTMLElement) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    const rect = columnElement.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const totalMinutes = (y / HOUR_HEIGHT) * 60;
+    // Snap to 15-minute increments
+    const snappedMinutes = Math.round(totalMinutes / 15) * 15;
+    const hour = Math.floor(snappedMinutes / 60);
+    
+    setDropTarget({ day, hour: Math.max(0, Math.min(23, hour)) });
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDropTarget(null);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, day: Date, columnElement: HTMLElement) => {
+    e.preventDefault();
+    
+    if (!draggingBlock) return;
+    
+    const rect = columnElement.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const totalMinutes = (y / HOUR_HEIGHT) * 60;
+    // Snap to 15-minute increments
+    const snappedMinutes = Math.round(totalMinutes / 15) * 15;
+    
+    // Calculate original duration
+    const originalStart = parseISO(draggingBlock.start_ts);
+    const originalEnd = parseISO(draggingBlock.end_ts);
+    const durationMinutes = differenceInMinutes(originalEnd, originalStart);
+    
+    // Create new start time
+    const newStart = setMinutes(setHours(day, Math.floor(snappedMinutes / 60)), snappedMinutes % 60);
+    const newEnd = addMinutes(newStart, durationMinutes);
+    
+    updateBlock({
+      id: draggingBlock.id,
+      start_ts: newStart.toISOString(),
+      end_ts: newEnd.toISOString(),
+    });
+    
+    toast.success(`Moved "${draggingBlock.title}" to ${format(newStart, 'EEE h:mm a')}`);
+    
+    setDraggingBlock(null);
+    setDropTarget(null);
+  }, [draggingBlock, updateBlock]);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggingBlock(null);
+    setDropTarget(null);
+  }, []);
 
   return (
     <div className="flex flex-col h-full">
@@ -136,28 +210,51 @@ export function WeekCalendar({ selectedDate = new Date(), onDateChange }: WeekCa
           </div>
 
           {/* Day columns */}
-          {days.map(day => (
-            <div key={day.toISOString()} className="relative border-l border-border">
-              {/* Hour lines */}
-              {HOURS.map(hour => (
-                <div
-                  key={hour}
-                  className="absolute left-0 right-0 border-t border-border/30"
-                  style={{ top: `${hour * HOUR_HEIGHT}px`, height: `${HOUR_HEIGHT}px` }}
-                />
-              ))}
+          {days.map(day => {
+            const isDropTargetDay = dropTarget && isSameDay(dropTarget.day, day);
+            return (
+              <div 
+                key={day.toISOString()} 
+                className={cn(
+                  "relative border-l border-border transition-colors",
+                  isDropTargetDay && "bg-primary/5"
+                )}
+                onDragOver={(e) => handleDragOver(e, day, e.currentTarget)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, day, e.currentTarget)}
+                onDragEnd={handleDragEnd}
+              >
+                {/* Hour lines */}
+                {HOURS.map(hour => (
+                  <div
+                    key={hour}
+                    className="absolute left-0 right-0 border-t border-border/30"
+                    style={{ top: `${hour * HOUR_HEIGHT}px`, height: `${HOUR_HEIGHT}px` }}
+                  />
+                ))}
 
-              {/* Blocks */}
-              {getBlocksForDay(day).map(block => (
-                <CalendarBlock
-                  key={block.id}
-                  block={block}
-                  dayStart={day}
-                  onClick={() => setSelectedBlock(block)}
-                />
-              ))}
-            </div>
-          ))}
+                {/* Drop indicator */}
+                {isDropTargetDay && (
+                  <div 
+                    className="absolute left-1 right-1 h-1 bg-primary rounded-full z-20 pointer-events-none"
+                    style={{ top: `${dropTarget.hour * HOUR_HEIGHT}px` }}
+                  />
+                )}
+
+                {/* Blocks */}
+                {getBlocksForDay(day).map(block => (
+                  <CalendarBlock
+                    key={block.id}
+                    block={block}
+                    dayStart={day}
+                    onClick={() => setSelectedBlock(block)}
+                    onDragStart={handleDragStart}
+                    isDragging={draggingBlock?.id === block.id}
+                  />
+                ))}
+              </div>
+            );
+          })}
         </div>
       </div>
 
