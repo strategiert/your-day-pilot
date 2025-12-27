@@ -1,44 +1,40 @@
 {
-  "title": "Settings",
-  "description": "Customize your scheduling preferences",
-  "save_changes": "Save Changes",
-  "settings_saved": "Settings saved!",
-  "failed_to_save": "Failed to save settings",
-
+  "title": "Paramètres",
+  "description": "Personnalisez vos préférences en matière de programmation",
+  "save_changes": "Enregistrer les modifications",
+  "settings_saved": "Paramètres sauvegardés !",
+  "failed_to_save": "Échec de l'enregistrement des paramètres",
   "language_section": {
-    "title": "Language",
-    "description": "Choose your preferred language"
+    "title": "Langue",
+    "description": "Choisissez votre langue préférée"
   },
-
   "timezone_section": {
-    "title": "Timezone",
-    "description": "Set your local timezone for accurate scheduling",
-    "select_placeholder": "Select timezone"
+    "title": "Fuseau horaire",
+    "description": "Définissez votre fuseau horaire local pour une programmation précise",
+    "select_placeholder": "Sélectionner le fuseau horaire"
   },
-
   "focus_section": {
-    "title": "Focus & Buffer Settings",
-    "description": "Configure how tasks are split and scheduled",
-    "focus_length": "Focus Session Length (minutes)",
-    "focus_help": "Tasks longer than this will be split into chunks",
-    "buffer_length": "Buffer Between Blocks (minutes)",
-    "buffer_help": "Breathing room between scheduled blocks",
-    "break": "break"
+    "title": "Réglages de la mise au point et de la mémoire tampon",
+    "description": "Configurer la répartition et la planification des tâches",
+    "focus_length": "Durée de la session (minutes)",
+    "focus_help": "Les tâches plus longues seront divisées en plusieurs parties.",
+    "buffer_length": "Période tampon entre les blocs (minutes)",
+    "buffer_help": "Une marge de manœuvre entre les blocs programmés",
+    "break": "pause"
   },
-
   "working_hours_section": {
-    "title": "Working Hours",
-    "description": "Define when tasks can be scheduled",
-    "day_off": "Day off",
-    "to": "to",
+    "title": "Heures de travail",
+    "description": "Définir quand les tâches peuvent être programmées",
+    "day_off": "Jour de congé",
+    "to": "à",
     "days": {
-      "monday": "Monday",
-      "tuesday": "Tuesday",
-      "wednesday": "Wednesday",
-      "thursday": "Thursday",
-      "friday": "Friday",
-      "saturday": "Saturday",
-      "sunday": "Sunday"
+      "monday": "Lundi",
+      "tuesday": "Mardi",
+      "wednesday": "Mercredi",
+      "thursday": "Jeudi",
+      "friday": "Vendredi",
+      "saturday": "Samedi",
+      "sunday": "Dimanche"
     }
   }
 }
