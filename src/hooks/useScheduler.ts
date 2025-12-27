@@ -116,7 +116,11 @@ export function useScheduler() {
   const scheduleMutation = useMutation({
     mutationFn: async () => {
       if (!user || !profile) throw new Error('Not authenticated');
-      
+
+      // DEBUG: Log loaded events
+      console.log('[Scheduler] Loaded events:', events.length);
+      events.forEach(e => console.log(`  - ${e.title}: ${e.start_ts}`));
+
       const workingHours = profile.working_hours_json;
       const focusLength = profile.focus_length_min;
       const bufferMin = profile.buffer_min;
@@ -175,16 +179,37 @@ export function useScheduler() {
           if (!workingSlot) continue;
 
           // Get busy times for this day - include both schedule blocks AND events
+          const eventsForDay = events.filter(e => {
+            // BUGFIX: Handle timezone issues when comparing dates
+            // If timestamp is in UTC (ends with Z), compare date strings directly
+            // to avoid timezone conversion shifting the date
+            const eventStartStr = e.start_ts;
+            const dayStr = format(day, 'yyyy-MM-dd');
+
+            // Extract date part from timestamp (handles both UTC and non-UTC)
+            const eventDateStr = eventStartStr.split('T')[0];
+            const matches = eventDateStr === dayStr;
+
+            if (matches) {
+              console.log(`[Scheduler] Event "${e.title}" matches day ${dayStr}`);
+            }
+
+            return matches;
+          });
+
           const dayBusy = [
             // Already scheduled blocks (habits, tasks)
             ...newBlocks
               .filter(b => isSameDay(parseISO(b.start_ts), day))
               .map(b => ({ start: parseISO(b.start_ts), end: parseISO(b.end_ts) })),
             // FIXED: Add events as busy blocks (they should not be moved)
-            ...events
-              .filter(e => isSameDay(parseISO(e.start_ts), day))
-              .map(e => ({ start: parseISO(e.start_ts), end: parseISO(e.end_ts) }))
+            ...eventsForDay.map(e => ({
+              start: parseISO(e.start_ts),
+              end: parseISO(e.end_ts)
+            }))
           ];
+
+          console.log(`[Scheduler] Day ${format(day, 'MMM d')}: ${eventsForDay.length} events, ${newBlocks.filter(b => isSameDay(parseISO(b.start_ts), day)).length} blocks`);
           
           const availableSlots = getAvailableSlots(day, workingSlot, dayBusy, bufferMin);
           
