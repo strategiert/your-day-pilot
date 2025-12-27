@@ -75,8 +75,8 @@ export function useGoogleCalendar() {
       }
 
       // Direct fetch to get error details even on non-2xx status
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://ygsznjehglazxhjvqoxt.supabase.co";
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnc3puamVoZ2xhenhoanZxb3h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Mjc1NTQsImV4cCI6MjA4MjMwMzU1NH0.QFMraWuxCEylse8KuEgf7HSBr5RzMEiQUef1M1oQzno";
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://hhlskbavdaapjlkwhcme.supabase.co";
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhobHNrYmF2ZGFhcGpsa3doY21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NTA2MTAsImV4cCI6MjA4MjQyNjYxMH0.40KWCDl-0Tvh3ZhAor8CIJGX7lPAHmuc2mkflq1-qL8";
       
       const response = await fetch(
         `${supabaseUrl}/functions/v1/google-calendar-auth`,
@@ -144,17 +144,74 @@ export function useGoogleCalendar() {
   const sync = async () => {
     setIsSyncing(true);
     try {
+      console.log('[useGoogleCalendar] Starting sync...');
       const { data, error } = await supabase.functions.invoke('sync-google-calendar', {
         body: {}
       });
 
+      console.log('[useGoogleCalendar] Sync response:', data);
       if (error) throw new Error(error.message);
       if (data.error) throw new Error(data.error);
 
       await checkStatus();
+
+      // Invalidate events cache to force reload
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        console.log('[useGoogleCalendar] Synced:', data.synced, 'events');
+      }
+
       return data;
     } catch (err) {
       console.error('Sync failed:', err);
+      throw err;
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const resetAndResync = async () => {
+    setIsSyncing(true);
+    try {
+      console.log('[useGoogleCalendar] RESET: Deleting all Google Calendar events from database...');
+
+      // Delete all events from Google Calendar
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) throw new Error('Not authenticated');
+
+      const { error: deleteError, count } = await supabase
+        .from('events')
+        .delete()
+        .eq('user_id', currentUser.id)
+        .eq('source', 'google');
+
+      if (deleteError) {
+        console.error('[useGoogleCalendar] RESET: Delete failed:', deleteError);
+        throw deleteError;
+      }
+
+      console.log('[useGoogleCalendar] RESET: Deleted', count, 'events');
+      console.log('[useGoogleCalendar] RESET: Starting fresh sync...');
+
+      // Now sync fresh
+      const { data, error } = await supabase.functions.invoke('sync-google-calendar', {
+        body: {}
+      });
+
+      console.log('[useGoogleCalendar] RESET: Sync response:', data);
+      if (error) throw new Error(error.message);
+      if (data.error) throw new Error(data.error);
+
+      await checkStatus();
+
+      console.log('[useGoogleCalendar] RESET: Complete! Synced', data.synced, 'events');
+
+      // Force page reload to clear all caches
+      window.location.reload();
+
+      return data;
+    } catch (err) {
+      console.error('[useGoogleCalendar] RESET: Failed:', err);
       throw err;
     } finally {
       setIsSyncing(false);
@@ -170,6 +227,7 @@ export function useGoogleCalendar() {
     connect,
     disconnect,
     sync,
+    resetAndResync,
     handleOAuthCallback,
     checkStatus,
   };

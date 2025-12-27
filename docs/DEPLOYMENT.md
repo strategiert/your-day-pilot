@@ -36,7 +36,7 @@ This opens a browser for OAuth authentication. You only need to do this once.
 
 ```bash
 cd your-day-pilot
-supabase link --project-ref ygsznjehglazxhjvqoxt
+supabase link --project-ref hhlskbavdaapjlkwhcme
 ```
 
 ## Deployment
@@ -56,10 +56,10 @@ supabase link --project-ref ygsznjehglazxhjvqoxt
 ### Manual Deployment
 
 ```bash
-supabase functions deploy google-calendar-auth --no-verify-jwt --project-ref ygsznjehglazxhjvqoxt
-supabase functions deploy sync-google-calendar --no-verify-jwt --project-ref ygsznjehglazxhjvqoxt
-supabase functions deploy parse-task --no-verify-jwt --project-ref ygsznjehglazxhjvqoxt
-supabase functions deploy weekly-summary --no-verify-jwt --project-ref ygsznjehglazxhjvqoxt
+supabase functions deploy google-calendar-auth --no-verify-jwt --project-ref hhlskbavdaapjlkwhcme
+supabase functions deploy sync-google-calendar --no-verify-jwt --project-ref hhlskbavdaapjlkwhcme
+supabase functions deploy parse-task --no-verify-jwt --project-ref hhlskbavdaapjlkwhcme
+supabase functions deploy weekly-summary --no-verify-jwt --project-ref hhlskbavdaapjlkwhcme
 ```
 
 ## Available Functions

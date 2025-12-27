@@ -11,23 +11,36 @@ export function useEvents(startDate?: Date, endDate?: Date) {
     queryKey: ['events', user?.id, startDate?.toISOString(), endDate?.toISOString()],
     queryFn: async () => {
       if (!user) return [];
-      
+
+      console.log('[useEvents] Loading events for user:', user.id);
+      console.log('[useEvents] Date range:', startDate?.toISOString(), 'to', endDate?.toISOString());
+
       let query = supabase
         .from('events')
         .select('*')
         .eq('user_id', user.id)
         .order('start_ts', { ascending: true });
-      
+
       if (startDate) {
         query = query.gte('start_ts', startDate.toISOString());
       }
       if (endDate) {
         query = query.lte('end_ts', endDate.toISOString());
       }
-      
+
       const { data, error } = await query;
-      
-      if (error) throw error;
+
+      if (error) {
+        console.error('[useEvents] Query failed:', error);
+        throw error;
+      }
+
+      console.log('[useEvents] Loaded', data?.length || 0, 'events');
+      if (data && data.length > 0) {
+        console.log('[useEvents] First event:', data[0].title, 'at', data[0].start_ts);
+        console.log('[useEvents] Last event:', data[data.length - 1].title, 'at', data[data.length - 1].start_ts);
+      }
+
       return data as CalendarEvent[];
     },
     enabled: !!user,
