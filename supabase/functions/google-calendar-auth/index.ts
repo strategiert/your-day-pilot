@@ -130,6 +130,8 @@ serve(async (req) => {
         );
       }
 
+      console.log("[google-calendar-auth] Exchanging code for tokens, redirect_uri:", redirect_uri);
+
       // Exchange code for tokens
       const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
@@ -144,12 +146,28 @@ serve(async (req) => {
       });
 
       const tokens = await tokenResponse.json();
-      
+
       if (tokens.error) {
-        console.error("Token exchange failed:", tokens.error);
+        console.error("[google-calendar-auth] Token exchange failed:", tokens.error, tokens.error_description);
         return new Response(
-          JSON.stringify({ error: tokens.error_description || "Failed to exchange code" }),
+          JSON.stringify({
+            error: "Failed to exchange authorization code",
+            details: tokens.error_description || tokens.error,
+            google_error: tokens.error
+          }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!tokenResponse.ok) {
+        console.error("[google-calendar-auth] Token response not OK:", tokenResponse.status, tokenResponse.statusText);
+        return new Response(
+          JSON.stringify({
+            error: "Google token exchange failed",
+            status: tokenResponse.status,
+            statusText: tokenResponse.statusText
+          }),
+          { status: tokenResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 

@@ -65,22 +65,34 @@ export function useGoogleCalendar() {
     setIsConnecting(true);
     try {
       const redirectUri = `${window.location.origin}/calendar`;
-      
+
+      console.log('[useGoogleCalendar] Exchanging code with redirect_uri:', redirectUri);
+
       const { data, error } = await supabase.functions.invoke('google-calendar-auth', {
-        body: { 
+        body: {
           action: 'exchange_code',
           code,
           redirect_uri: redirectUri
         }
       });
 
-      if (error) throw new Error(error.message);
-      if (data.error) throw new Error(data.error);
+      console.log('[useGoogleCalendar] Exchange response:', { data, error });
+
+      if (error) {
+        console.error('[useGoogleCalendar] Supabase function error:', error);
+        throw new Error(error.message);
+      }
+
+      if (data.error) {
+        const errorMessage = data.details || data.error;
+        console.error('[useGoogleCalendar] Function returned error:', data);
+        throw new Error(errorMessage);
+      }
 
       await checkStatus();
       return true;
     } catch (err) {
-      console.error('OAuth callback failed:', err);
+      console.error('[useGoogleCalendar] OAuth callback failed:', err);
       throw err;
     } finally {
       setIsConnecting(false);
