@@ -1,4 +1,4 @@
-project_id = "ygsznjehglazxhjvqoxt"
+project_id = "hhlskbavdaapjlkwhcme"
 
 [functions.parse-task]
 verify_jwt = false
