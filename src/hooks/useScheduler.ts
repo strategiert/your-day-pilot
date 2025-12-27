@@ -156,39 +156,35 @@ export function useScheduler() {
         }
       }
       
-      // Add event blocks
-      for (const event of events) {
-        newBlocks.push({
-          user_id: user.id,
-          block_type: 'event',
-          ref_id: event.id,
-          title: event.title,
-          start_ts: event.start_ts,
-          end_ts: event.end_ts,
-          status: 'scheduled',
-          explanation: 'External calendar event',
-        });
-      }
-      
+      // Don't add events to schedule_blocks - they stay in events table
+      // Instead, treat them as busy time when scheduling tasks
+
       // Sort tasks by priority
       const unscheduledTasks = tasks
         .filter(t => t.status === 'backlog')
         .sort((a, b) => priorityScore(b) - priorityScore(a));
-      
+
       // Schedule tasks
       for (const task of unscheduledTasks) {
         let remainingMinutes = task.est_min;
-        
+
         for (let dayOffset = 0; dayOffset < 7 && remainingMinutes > 0; dayOffset++) {
           const day = addDays(weekStart, dayOffset);
           const workingSlot = getWorkingSlots(day, workingHours);
-          
+
           if (!workingSlot) continue;
-          
-          // Get busy times for this day
-          const dayBusy = newBlocks
-            .filter(b => isSameDay(parseISO(b.start_ts), day))
-            .map(b => ({ start: parseISO(b.start_ts), end: parseISO(b.end_ts) }));
+
+          // Get busy times for this day - include both schedule blocks AND events
+          const dayBusy = [
+            // Already scheduled blocks (habits, tasks)
+            ...newBlocks
+              .filter(b => isSameDay(parseISO(b.start_ts), day))
+              .map(b => ({ start: parseISO(b.start_ts), end: parseISO(b.end_ts) })),
+            // FIXED: Add events as busy blocks (they should not be moved)
+            ...events
+              .filter(e => isSameDay(parseISO(e.start_ts), day))
+              .map(e => ({ start: parseISO(e.start_ts), end: parseISO(e.end_ts) }))
+          ];
           
           const availableSlots = getAvailableSlots(day, workingSlot, dayBusy, bufferMin);
           

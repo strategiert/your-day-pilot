@@ -6,7 +6,7 @@ import { useTasks } from '@/hooks/useTasks';
 import { useScheduleBlocks } from '@/hooks/useScheduleBlocks';
 import { useEvents } from '@/hooks/useEvents';
 import { Button } from '@/components/ui/button';
-import { Loader2, Zap, Calendar, CheckCircle2, Clock, ArrowRight } from 'lucide-react';
+import { Loader2, Zap, Calendar, CheckCircle2, Clock, ArrowRight, Lock } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { startOfDay, endOfDay, format, parseISO } from 'date-fns';
 
@@ -130,10 +130,15 @@ export default function Index() {
                     'bg-accent'
                   }`} />
                   <div className="flex-1">
-                    <div className="font-medium">{block.title}</div>
+                    <div className="font-medium flex items-center gap-2">
+                      {block.title}
+                      {block.block_type === 'event' && (
+                        <Lock className="w-3 h-3 text-muted-foreground" />
+                      )}
+                    </div>
                     <div className="text-sm text-muted-foreground">
                       {format(parseISO(block.start_ts), 'h:mm a')} - {format(parseISO(block.end_ts), 'h:mm a')}
-                      {block.block_type === 'event' && <span className="ml-2 text-xs">(Google Calendar)</span>}
+                      {block.block_type === 'event' && <span className="ml-2 text-xs">(Google Calendar - Fixed)</span>}
                     </div>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${

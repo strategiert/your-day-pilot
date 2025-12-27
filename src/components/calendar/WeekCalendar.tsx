@@ -6,7 +6,7 @@ import { useHabits } from '@/hooks/useHabits';
 import { useEvents } from '@/hooks/useEvents';
 import { ScheduleBlock, Task } from '@/types';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, Sparkles, Info, Clock, Flag, GripVertical } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, Info, Clock, Flag, GripVertical, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { toast } from 'sonner';
@@ -25,12 +25,15 @@ interface CalendarBlockProps {
 function CalendarBlock({ block, dayStart, onClick, onDragStart, isDragging }: CalendarBlockProps) {
   const startTime = parseISO(block.start_ts);
   const endTime = parseISO(block.end_ts);
-  
+
   const startMinutes = startTime.getHours() * 60 + startTime.getMinutes();
   const durationMinutes = differenceInMinutes(endTime, startTime);
-  
+
   const top = (startMinutes / 60) * HOUR_HEIGHT;
   const height = Math.max((durationMinutes / 60) * HOUR_HEIGHT, 30);
+
+  // Events (Google Calendar) are locked and cannot be dragged
+  const isLocked = block.block_type === 'event';
 
   const blockStyles = {
     task: 'bg-primary/20 border-l-4 border-primary hover:bg-primary/30',
@@ -40,18 +43,24 @@ function CalendarBlock({ block, dayStart, onClick, onDragStart, isDragging }: Ca
 
   return (
     <div
-      draggable
-      onDragStart={(e) => onDragStart(e, block)}
+      draggable={!isLocked}
+      onDragStart={(e) => !isLocked && onDragStart(e, block)}
       className={cn(
-        'absolute left-1 right-1 rounded-lg p-2 cursor-grab active:cursor-grabbing transition-all duration-200 overflow-hidden group',
+        'absolute left-1 right-1 rounded-lg p-2 transition-all duration-200 overflow-hidden group',
         blockStyles[block.block_type],
+        !isLocked && 'cursor-grab active:cursor-grabbing',
+        isLocked && 'cursor-default',
         isDragging && 'opacity-50 ring-2 ring-primary'
       )}
       style={{ top: `${top}px`, height: `${height}px` }}
       onClick={onClick}
     >
       <div className="flex items-start gap-1">
-        <GripVertical className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5" />
+        {isLocked ? (
+          <Lock className="w-3 h-3 text-muted-foreground shrink-0 mt-0.5" />
+        ) : (
+          <GripVertical className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5" />
+        )}
         <div className="flex-1 min-w-0">
           <div className="text-xs font-medium truncate">{block.title}</div>
           <div className="text-xs text-muted-foreground">
