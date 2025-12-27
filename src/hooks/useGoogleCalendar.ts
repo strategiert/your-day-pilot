@@ -68,24 +68,50 @@ export function useGoogleCalendar() {
 
       console.log('[useGoogleCalendar] Exchanging code with redirect_uri:', redirectUri);
 
-      const { data, error } = await supabase.functions.invoke('google-calendar-auth', {
-        body: {
-          action: 'exchange_code',
-          code,
-          redirect_uri: redirectUri
-        }
-      });
-
-      console.log('[useGoogleCalendar] Exchange response:', { data, error });
-
-      if (error) {
-        console.error('[useGoogleCalendar] Supabase function error:', error);
-        throw new Error(error.message);
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No active session');
       }
 
-      if (data.error) {
-        const errorMessage = data.details || data.error;
-        console.error('[useGoogleCalendar] Function returned error:', data);
+      // Direct fetch to get error details even on non-2xx status
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://ygsznjehglazxhjvqoxt.supabase.co";
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnc3puamVoZ2xhenhoanZxb3h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Mjc1NTQsImV4cCI6MjA4MjMwMzU1NH0.QFMraWuxCEylse8KuEgf7HSBr5RzMEiQUef1M1oQzno";
+      
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/google-calendar-auth`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': supabaseKey,
+          },
+          body: JSON.stringify({
+            action: 'exchange_code',
+            code,
+            redirect_uri: redirectUri
+          })
+        }
+      );
+
+      const responseText = await response.text();
+      console.log('[useGoogleCalendar] Raw response status:', response.status);
+      console.log('[useGoogleCalendar] Raw response body:', responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        console.error('[useGoogleCalendar] Failed to parse response as JSON');
+        throw new Error(`HTTP ${response.status}: ${responseText || 'Empty response'}`);
+      }
+
+      console.log('[useGoogleCalendar] Parsed response data:', JSON.stringify(data, null, 2));
+
+      if (!response.ok) {
+        const errorMessage = data.details || data.error || `HTTP ${response.status}`;
+        console.error('[useGoogleCalendar] Function returned error:', JSON.stringify(data, null, 2));
         throw new Error(errorMessage);
       }
 
