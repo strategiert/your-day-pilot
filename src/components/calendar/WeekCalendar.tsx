@@ -76,7 +76,27 @@ export function WeekCalendar({ selectedDate = new Date(), onDateChange }: WeekCa
   
   const weekEnd = addDays(currentWeekStart, 7);
   const { blocks, updateBlock, isUpdating } = useScheduleBlocks(currentWeekStart, weekEnd);
-  
+  const { events } = useEvents(currentWeekStart, weekEnd);
+
+  // Combine schedule blocks and events into a unified view
+  const allBlocks: ScheduleBlock[] = [
+    ...blocks,
+    // Convert events to ScheduleBlock format for display
+    ...events.map(event => ({
+      id: event.id,
+      user_id: event.user_id,
+      block_type: 'event' as const,
+      ref_id: event.external_id || null,
+      title: event.title,
+      start_ts: event.start_ts,
+      end_ts: event.end_ts,
+      status: 'scheduled' as const,
+      explanation: event.description || null,
+      created_at: event.created_at,
+      updated_at: event.updated_at,
+    }))
+  ];
+
   const days = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
 
   const navigateWeek = (direction: number) => {
@@ -84,7 +104,7 @@ export function WeekCalendar({ selectedDate = new Date(), onDateChange }: WeekCa
   };
 
   const getBlocksForDay = (day: Date) => {
-    return blocks.filter(block => {
+    return allBlocks.filter(block => {
       const blockDate = parseISO(block.start_ts);
       return isSameDay(blockDate, day);
     });
