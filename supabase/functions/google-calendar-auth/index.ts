@@ -176,26 +176,50 @@ serve(async (req) => {
       const encryptedAccessToken = await encryptToken(tokens.access_token);
       const encryptedRefreshToken = tokens.refresh_token ? await encryptToken(tokens.refresh_token) : null;
 
-      // Store encrypted tokens in calendar_connections
-      const { error: insertError } = await supabase
+      // Check if connection already exists
+      const { data: existingConnection } = await supabase
         .from("calendar_connections")
-        .upsert({
-          user_id: user.id,
-          provider: "google",
-          status: "connected",
-          tokens_json: {
-            access_token: encryptedAccessToken,
-            refresh_token: encryptedRefreshToken,
-            expires_at: Date.now() + tokens.expires_in * 1000,
-            encrypted: true,
-          },
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "user_id,provider" });
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("provider", "google")
+        .single();
 
-      if (insertError) {
-        console.error("Failed to save calendar connection for user");
+      const connectionData = {
+        user_id: user.id,
+        provider: "google",
+        status: "connected",
+        tokens_json: {
+          access_token: encryptedAccessToken,
+          refresh_token: encryptedRefreshToken,
+          expires_at: Date.now() + tokens.expires_in * 1000,
+          encrypted: true,
+        },
+        updated_at: new Date().toISOString(),
+      };
+
+      let saveError;
+      if (existingConnection) {
+        // Update existing connection
+        const { error } = await supabase
+          .from("calendar_connections")
+          .update(connectionData)
+          .eq("id", existingConnection.id);
+        saveError = error;
+      } else {
+        // Insert new connection
+        const { error } = await supabase
+          .from("calendar_connections")
+          .insert(connectionData);
+        saveError = error;
+      }
+
+      if (saveError) {
+        console.error("Failed to save calendar connection:", saveError.message);
         return new Response(
-          JSON.stringify({ error: "Failed to save connection" }),
+          JSON.stringify({
+            error: "Failed to save connection",
+            details: saveError.message
+          }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
