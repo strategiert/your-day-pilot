@@ -2,8 +2,9 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// Use environment variables with fallback to hardcoded values for Lovable Cloud
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://ygsznjehglazxhjvqoxt.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnc3puamVoZ2xhenhoanZxb3h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Mjc1NTQsImV4cCI6MjA4MjMwMzU1NH0.QFMraWuxCEylse8KuEgf7HSBr5RzMEiQUef1M1oQzno";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
