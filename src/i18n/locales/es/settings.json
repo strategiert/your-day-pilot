@@ -1,44 +1,40 @@
 {
-  "title": "Settings",
-  "description": "Customize your scheduling preferences",
-  "save_changes": "Save Changes",
-  "settings_saved": "Settings saved!",
-  "failed_to_save": "Failed to save settings",
-
+  "title": "Ajustes",
+  "description": "Personaliza tus preferencias de programación",
+  "save_changes": "Guardar cambios",
+  "settings_saved": "Ajustes guardados.",
+  "failed_to_save": "No se ha podido guardar la configuración",
   "language_section": {
-    "title": "Language",
-    "description": "Choose your preferred language"
+    "title": "Idioma",
+    "description": "Elija su idioma preferido"
   },
-
   "timezone_section": {
-    "title": "Timezone",
-    "description": "Set your local timezone for accurate scheduling",
-    "select_placeholder": "Select timezone"
+    "title": "Zona horaria",
+    "description": "Establezca su zona horaria local para una programación precisa",
+    "select_placeholder": "Seleccionar zona horaria"
   },
-
   "focus_section": {
-    "title": "Focus & Buffer Settings",
-    "description": "Configure how tasks are split and scheduled",
-    "focus_length": "Focus Session Length (minutes)",
-    "focus_help": "Tasks longer than this will be split into chunks",
-    "buffer_length": "Buffer Between Blocks (minutes)",
-    "buffer_help": "Breathing room between scheduled blocks",
-    "break": "break"
+    "title": "Ajustes de enfoque y búfer",
+    "description": "Configurar cómo se dividen y programan las tareas",
+    "focus_length": "Duración de la sesión (minutos)",
+    "focus_help": "Las tareas más largas se dividirán en trozos",
+    "buffer_length": "Intervalo entre bloques (minutos)",
+    "buffer_help": "Un respiro entre bloques programados",
+    "break": "romper"
   },
-
   "working_hours_section": {
-    "title": "Working Hours",
-    "description": "Define when tasks can be scheduled",
-    "day_off": "Day off",
-    "to": "to",
+    "title": "Horario laboral",
+    "description": "Definir cuándo se pueden programar las tareas",
+    "day_off": "Día libre",
+    "to": "a",
     "days": {
-      "monday": "Monday",
-      "tuesday": "Tuesday",
-      "wednesday": "Wednesday",
-      "thursday": "Thursday",
-      "friday": "Friday",
-      "saturday": "Saturday",
-      "sunday": "Sunday"
+      "monday": "Lunes",
+      "tuesday": "Martes",
+      "wednesday": "Miércoles",
+      "thursday": "Jueves",
+      "friday": "Viernes",
+      "saturday": "Sábado",
+      "sunday": "Domingo"
     }
   }
 }

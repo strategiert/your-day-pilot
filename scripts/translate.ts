@@ -40,6 +40,11 @@ const TARGET_LANGUAGES = {
   it: 'IT',
 };
 
+// Rate limiting settings
+const DELAY_BETWEEN_REQUESTS = 500; // ms between each translation
+const RETRY_DELAY = 5000; // ms to wait on rate limit error
+const MAX_RETRIES = 3;
+
 const LOCALES_DIR = path.join(process.cwd(), 'src', 'i18n', 'locales');
 const EN_DIR = path.join(LOCALES_DIR, 'en');
 
@@ -48,9 +53,9 @@ interface TranslationObject {
 }
 
 /**
- * Translate text using DeepL API
+ * Translate text using DeepL API with retry logic
  */
-async function translateText(text: string, targetLang: string): Promise<string> {
+async function translateText(text: string, targetLang: string, retries = 0): Promise<string> {
   const params = new URLSearchParams({
     auth_key: DEEPL_API_KEY!,
     text,
@@ -65,6 +70,15 @@ async function translateText(text: string, targetLang: string): Promise<string> 
     },
     body: params,
   });
+
+  if (response.status === 429) {
+    if (retries < MAX_RETRIES) {
+      console.log(`  ⏳ Rate limited, waiting ${RETRY_DELAY / 1000}s before retry ${retries + 1}/${MAX_RETRIES}...`);
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+      return translateText(text, targetLang, retries + 1);
+    }
+    throw new Error(`DeepL API rate limit exceeded after ${MAX_RETRIES} retries`);
+  }
 
   if (!response.ok) {
     throw new Error(`DeepL API error: ${response.status} ${response.statusText}`);
@@ -89,8 +103,8 @@ async function translateObject(
 
     if (typeof value === 'string') {
       console.log(`  Translating: ${currentPath}`);
-      // Add small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Add delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
       result[key] = await translateText(value, targetLang);
     } else if (typeof value === 'object' && value !== null) {
       result[key] = await translateObject(value, targetLang, currentPath);
@@ -135,9 +149,42 @@ async function processFile(fileName: string, targetLang: string, targetLangCode:
 }
 
 /**
+ * Check if a translation file needs updating
+ */
+function needsTranslation(fileName: string, targetLangCode: string): boolean {
+  const sourceFilePath = path.join(EN_DIR, fileName);
+  const targetDir = path.join(LOCALES_DIR, targetLangCode);
+  const targetFilePath = path.join(targetDir, fileName);
+
+  // If target doesn't exist, needs translation
+  if (!fs.existsSync(targetFilePath)) {
+    return true;
+  }
+
+  // Check if target has same keys as source (simple check)
+  try {
+    const sourceContent = JSON.parse(fs.readFileSync(sourceFilePath, 'utf-8'));
+    const targetContent = JSON.parse(fs.readFileSync(targetFilePath, 'utf-8'));
+
+    // If target equals source (English), it needs translation
+    if (JSON.stringify(sourceContent) === JSON.stringify(targetContent)) {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+/**
  * Main execution
  */
 async function main() {
+  // Check for --only flag to translate specific languages
+  const onlyArg = process.argv.find(arg => arg.startsWith('--only='));
+  const onlyLangs = onlyArg ? onlyArg.split('=')[1].split(',') : null;
+
   console.log('🌐 Starting translation process...\n');
   console.log(`Source: ${EN_DIR}`);
   console.log(`Target languages: ${Object.keys(TARGET_LANGUAGES).join(', ')}\n`);
@@ -154,10 +201,22 @@ async function main() {
 
   // Process each file for each target language
   for (const [targetLangCode, deeplLangCode] of Object.entries(TARGET_LANGUAGES)) {
+    // Skip if --only flag is set and this language is not in the list
+    if (onlyLangs && !onlyLangs.includes(targetLangCode)) {
+      console.log(`\n⏭️  Skipping ${targetLangCode.toUpperCase()} (not in --only list)`);
+      continue;
+    }
+
     console.log(`\n🔄 Translating to ${targetLangCode.toUpperCase()} (${deeplLangCode})`);
     console.log('─'.repeat(50));
 
     for (const file of files) {
+      // Check if translation is needed
+      if (!needsTranslation(file, targetLangCode)) {
+        console.log(`\n⏭️  Skipping ${file} → ${targetLangCode.toUpperCase()} (already translated)`);
+        continue;
+      }
+
       try {
         await processFile(file, deeplLangCode, targetLangCode);
       } catch (error) {

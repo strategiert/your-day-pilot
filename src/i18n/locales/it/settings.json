@@ -1,44 +1,40 @@
 {
-  "title": "Settings",
-  "description": "Customize your scheduling preferences",
-  "save_changes": "Save Changes",
-  "settings_saved": "Settings saved!",
-  "failed_to_save": "Failed to save settings",
-
+  "title": "Impostazioni",
+  "description": "Personalizzare le preferenze di pianificazione",
+  "save_changes": "Salva le modifiche",
+  "settings_saved": "Impostazioni salvate!",
+  "failed_to_save": "Impossibile salvare le impostazioni",
   "language_section": {
-    "title": "Language",
-    "description": "Choose your preferred language"
+    "title": "Lingua",
+    "description": "Scegliere la lingua preferita"
   },
-
   "timezone_section": {
-    "title": "Timezone",
-    "description": "Set your local timezone for accurate scheduling",
-    "select_placeholder": "Select timezone"
+    "title": "Fuso orario",
+    "description": "Impostare il fuso orario locale per una programmazione accurata",
+    "select_placeholder": "Selezionare il fuso orario"
   },
-
   "focus_section": {
-    "title": "Focus & Buffer Settings",
-    "description": "Configure how tasks are split and scheduled",
-    "focus_length": "Focus Session Length (minutes)",
-    "focus_help": "Tasks longer than this will be split into chunks",
-    "buffer_length": "Buffer Between Blocks (minutes)",
-    "buffer_help": "Breathing room between scheduled blocks",
-    "break": "break"
+    "title": "Impostazioni di messa a fuoco e buffer",
+    "description": "Configurare la suddivisione e la pianificazione delle attività",
+    "focus_length": "Durata della sessione (minuti)",
+    "focus_help": "I compiti più lunghi saranno suddivisi in parti.",
+    "buffer_length": "Buffer tra i blocchi (minuti)",
+    "buffer_help": "Spazio di respiro tra i blocchi programmati",
+    "break": "pausa"
   },
-
   "working_hours_section": {
-    "title": "Working Hours",
-    "description": "Define when tasks can be scheduled",
-    "day_off": "Day off",
-    "to": "to",
+    "title": "Orario di lavoro",
+    "description": "Definire quando le attività possono essere pianificate",
+    "day_off": "Giorno libero",
+    "to": "a",
     "days": {
-      "monday": "Monday",
-      "tuesday": "Tuesday",
-      "wednesday": "Wednesday",
-      "thursday": "Thursday",
-      "friday": "Friday",
-      "saturday": "Saturday",
-      "sunday": "Sunday"
+      "monday": "Lunedì",
+      "tuesday": "Martedì",
+      "wednesday": "Mercoledì",
+      "thursday": "Giovedì",
+      "friday": "Venerdì",
+      "saturday": "Sabato",
+      "sunday": "Domenica"
     }
   }
 }

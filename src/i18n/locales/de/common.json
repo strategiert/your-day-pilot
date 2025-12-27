@@ -1,7 +1,17 @@
 {
   "app_name": "FlowPilot",
-  "loading": "Wird geladen...",
-  "save": "Speichern",
+  "loading": "Laden...",
+  "save": "Speichern Sie",
   "cancel": "Abbrechen",
-  "delete": "Löschen"
+  "delete": "Löschen",
+  "edit": "bearbeiten",
+  "close": "Schließen Sie",
+  "confirm": "Bestätigen Sie",
+  "back": "Zurück",
+  "next": "Weiter",
+  "finish": "Oberfläche",
+  "error": "Fehler",
+  "success": "Erfolg",
+  "warning": "Warnung",
+  "info": "Infos"
 }
