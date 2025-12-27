@@ -1,7 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
-import { detectLanguage, type SupportedLanguage } from './detectLanguage';
 
 // Import translation files
 import commonEn from './locales/en/common.json';
@@ -52,18 +51,19 @@ const resources = {
   },
 };
 
-// Custom language detector with geo-location
+// Supported languages
+const supportedLanguages = ['en', 'de', 'es', 'fr', 'it'];
+
+// Simple synchronous custom detector
 const customDetector = {
   name: 'customDetector',
-  async: true,
-  lookup: async (callback: (lng: string) => void) => {
-    try {
-      const detectedLang = await detectLanguage();
-      callback(detectedLang);
-    } catch (error) {
-      console.error('[i18n] Language detection failed:', error);
-      callback('en'); // Fallback to English
+  lookup: (): string | undefined => {
+    // Check localStorage first
+    const stored = localStorage.getItem('preferredLanguage');
+    if (stored && supportedLanguages.includes(stored)) {
+      return stored;
     }
+    return undefined;
   },
   cacheUserLanguage: (lng: string) => {
     localStorage.setItem('preferredLanguage', lng);
@@ -83,7 +83,7 @@ i18n
     ns: ['common', 'auth', 'settings'],
 
     detection: {
-      order: ['customDetector', 'localStorage', 'navigator'],
+      order: ['localStorage', 'navigator', 'customDetector'],
       caches: ['localStorage'],
       lookupLocalStorage: 'preferredLanguage',
     },
@@ -93,7 +93,7 @@ i18n
     },
 
     react: {
-      useSuspense: true,
+      useSuspense: false, // Disable suspense to prevent hanging with async language detection
     },
   });
 
