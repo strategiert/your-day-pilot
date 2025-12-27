@@ -76,16 +76,17 @@ export function useGoogleCalendar() {
         }
       });
 
-      console.log('[useGoogleCalendar] Exchange response:', { data, error });
+      console.log('[useGoogleCalendar] Exchange response DATA:', JSON.stringify(data, null, 2));
+      console.log('[useGoogleCalendar] Exchange response ERROR:', JSON.stringify(error, null, 2));
 
       if (error) {
         console.error('[useGoogleCalendar] Supabase function error:', error);
         throw new Error(error.message);
       }
 
-      if (data.error) {
+      if (data?.error) {
         const errorMessage = data.details || data.error;
-        console.error('[useGoogleCalendar] Function returned error:', data);
+        console.error('[useGoogleCalendar] Function returned error data:', JSON.stringify(data, null, 2));
         throw new Error(errorMessage);
       }
 
