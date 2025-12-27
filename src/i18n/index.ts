@@ -83,7 +83,7 @@ i18n
     ns: ['common', 'auth', 'settings'],
 
     detection: {
-      order: ['customDetector', 'localStorage', 'navigator'],
+      order: ['localStorage', 'navigator', 'customDetector'],
       caches: ['localStorage'],
       lookupLocalStorage: 'preferredLanguage',
     },
@@ -93,7 +93,7 @@ i18n
     },
 
     react: {
-      useSuspense: true,
+      useSuspense: false, // Disable suspense to prevent hanging with async language detection
     },
   });
 
