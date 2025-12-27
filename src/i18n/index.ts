@@ -8,6 +8,22 @@ import commonEn from './locales/en/common.json';
 import authEn from './locales/en/auth.json';
 import settingsEn from './locales/en/settings.json';
 
+import commonDe from './locales/de/common.json';
+import authDe from './locales/de/auth.json';
+import settingsDe from './locales/de/settings.json';
+
+import commonEs from './locales/es/common.json';
+import authEs from './locales/es/auth.json';
+import settingsEs from './locales/es/settings.json';
+
+import commonFr from './locales/fr/common.json';
+import authFr from './locales/fr/auth.json';
+import settingsFr from './locales/fr/settings.json';
+
+import commonIt from './locales/it/common.json';
+import authIt from './locales/it/auth.json';
+import settingsIt from './locales/it/settings.json';
+
 const resources = {
   en: {
     common: commonEn,
@@ -15,24 +31,24 @@ const resources = {
     settings: settingsEn,
   },
   de: {
-    common: {},
-    auth: {},
-    settings: {},
+    common: commonDe,
+    auth: authDe,
+    settings: settingsDe,
   },
   es: {
-    common: {},
-    auth: {},
-    settings: {},
+    common: commonEs,
+    auth: authEs,
+    settings: settingsEs,
   },
   fr: {
-    common: {},
-    auth: {},
-    settings: {},
+    common: commonFr,
+    auth: authFr,
+    settings: settingsFr,
   },
   it: {
-    common: {},
-    auth: {},
-    settings: {},
+    common: commonIt,
+    auth: authIt,
+    settings: settingsIt,
   },
 };
 
