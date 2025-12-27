@@ -10,11 +10,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Upload, 
-  Download, 
-  Plus, 
-  Calendar as CalendarIcon, 
+import {
+  Upload,
+  Download,
+  Plus,
+  Calendar as CalendarIcon,
   Loader2,
   FileText,
   Check,
@@ -22,7 +22,8 @@ import {
   RefreshCw,
   Link2,
   Unlink,
-  Chrome
+  Chrome,
+  RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navigate, useSearchParams } from 'react-router-dom';
@@ -143,15 +144,16 @@ export default function CalendarPage() {
   const { user, loading: authLoading } = useAuth();
   const { events, isLoading, createEvent, isCreating } = useEvents();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { 
-    isConnected, 
-    lastSyncedAt, 
+  const {
+    isConnected,
+    lastSyncedAt,
     isLoading: isGoogleLoading,
     isSyncing,
     isConnecting,
     connect,
     disconnect,
     sync,
+    resetAndResync,
     handleOAuthCallback
   } = useGoogleCalendar();
   
@@ -375,34 +377,59 @@ export default function CalendarPage() {
                       </span>
                     )}
                   </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={() => sync().then(data => {
-                        toast.success(`Synced ${data.synced} events from Google Calendar`);
-                      }).catch(err => {
-                        toast.error('Sync failed: ' + (err.message || 'Unknown error'));
-                      })}
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => sync().then(data => {
+                          toast.success(`Synced ${data.synced} events from Google Calendar`);
+                        }).catch(err => {
+                          toast.error('Sync failed: ' + (err.message || 'Unknown error'));
+                        })}
+                        disabled={isSyncing}
+                      >
+                        {isSyncing ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                        )}
+                        Sync Now
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          disconnect()
+                            .then(() => toast.success('Disconnected from Google Calendar'))
+                            .catch(() => toast.error('Failed to disconnect'));
+                        }}
+                      >
+                        <Unlink className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      onClick={() => {
+                        if (confirm('This will delete all Google Calendar events from the database and re-sync. Continue?')) {
+                          resetAndResync()
+                            .then(data => {
+                              toast.success(`Reset complete! Synced ${data?.synced || 0} events`);
+                            })
+                            .catch(err => {
+                              toast.error('Reset failed: ' + (err.message || 'Unknown error'));
+                            });
+                        }
+                      }}
                       disabled={isSyncing}
                     >
                       {isSyncing ? (
                         <Loader2 className="w-4 h-4 animate-spin mr-2" />
                       ) : (
-                        <RefreshCw className="w-4 h-4 mr-2" />
+                        <RotateCcw className="w-4 h-4 mr-2" />
                       )}
-                      Sync Now
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => {
-                        disconnect()
-                          .then(() => toast.success('Disconnected from Google Calendar'))
-                          .catch(() => toast.error('Failed to disconnect'));
-                      }}
-                    >
-                      <Unlink className="w-4 h-4" />
+                      Reset & Re-sync
                     </Button>
                   </div>
                 </>
