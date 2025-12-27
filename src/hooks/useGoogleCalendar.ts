@@ -75,8 +75,8 @@ export function useGoogleCalendar() {
       }
 
       // Direct fetch to get error details even on non-2xx status
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://ygsznjehglazxhjvqoxt.supabase.co";
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnc3puamVoZ2xhenhoanZxb3h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Mjc1NTQsImV4cCI6MjA4MjMwMzU1NH0.QFMraWuxCEylse8KuEgf7HSBr5RzMEiQUef1M1oQzno";
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://hhlskbavdaapjlkwhcme.supabase.co";
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhobHNrYmF2ZGFhcGpsa3doY21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NTA2MTAsImV4cCI6MjA4MjQyNjYxMH0.40KWCDl-0Tvh3ZhAor8CIJGX7lPAHmuc2mkflq1-qL8";
       
       const response = await fetch(
         `${supabaseUrl}/functions/v1/google-calendar-auth`,

@@ -6,7 +6,7 @@
 
 set -e
 
-PROJECT_REF="ygsznjehglazxhjvqoxt"
+PROJECT_REF="hhlskbavdaapjlkwhcme"
 
 # All available functions
 FUNCTIONS=(
