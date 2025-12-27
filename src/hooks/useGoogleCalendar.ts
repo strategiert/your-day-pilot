@@ -144,17 +144,74 @@ export function useGoogleCalendar() {
   const sync = async () => {
     setIsSyncing(true);
     try {
+      console.log('[useGoogleCalendar] Starting sync...');
       const { data, error } = await supabase.functions.invoke('sync-google-calendar', {
         body: {}
       });
 
+      console.log('[useGoogleCalendar] Sync response:', data);
       if (error) throw new Error(error.message);
       if (data.error) throw new Error(data.error);
 
       await checkStatus();
+
+      // Invalidate events cache to force reload
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        console.log('[useGoogleCalendar] Synced:', data.synced, 'events');
+      }
+
       return data;
     } catch (err) {
       console.error('Sync failed:', err);
+      throw err;
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const resetAndResync = async () => {
+    setIsSyncing(true);
+    try {
+      console.log('[useGoogleCalendar] RESET: Deleting all Google Calendar events from database...');
+
+      // Delete all events from Google Calendar
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) throw new Error('Not authenticated');
+
+      const { error: deleteError, count } = await supabase
+        .from('events')
+        .delete()
+        .eq('user_id', currentUser.id)
+        .eq('source', 'google');
+
+      if (deleteError) {
+        console.error('[useGoogleCalendar] RESET: Delete failed:', deleteError);
+        throw deleteError;
+      }
+
+      console.log('[useGoogleCalendar] RESET: Deleted', count, 'events');
+      console.log('[useGoogleCalendar] RESET: Starting fresh sync...');
+
+      // Now sync fresh
+      const { data, error } = await supabase.functions.invoke('sync-google-calendar', {
+        body: {}
+      });
+
+      console.log('[useGoogleCalendar] RESET: Sync response:', data);
+      if (error) throw new Error(error.message);
+      if (data.error) throw new Error(data.error);
+
+      await checkStatus();
+
+      console.log('[useGoogleCalendar] RESET: Complete! Synced', data.synced, 'events');
+
+      // Force page reload to clear all caches
+      window.location.reload();
+
+      return data;
+    } catch (err) {
+      console.error('[useGoogleCalendar] RESET: Failed:', err);
       throw err;
     } finally {
       setIsSyncing(false);
@@ -170,6 +227,7 @@ export function useGoogleCalendar() {
     connect,
     disconnect,
     sync,
+    resetAndResync,
     handleOAuthCallback,
     checkStatus,
   };
