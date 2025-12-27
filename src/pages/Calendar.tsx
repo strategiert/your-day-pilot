@@ -171,18 +171,32 @@ export default function CalendarPage() {
     is_busy: true,
   });
 
+  // Track if OAuth callback has been processed to prevent duplicate calls
+  const oauthProcessedRef = useRef(false);
+
   // Handle OAuth callback
   useEffect(() => {
     const code = searchParams.get('code');
-    if (code && user) {
+    if (code && user && !oauthProcessedRef.current) {
+      // Mark as processed immediately to prevent duplicate calls
+      oauthProcessedRef.current = true;
+
+      // Clear URL immediately to prevent reuse
+      setSearchParams({});
+
       handleOAuthCallback(code)
         .then(() => {
           toast.success('Google Calendar connected!');
-          setSearchParams({});
+          // Automatically start sync after connection
+          return sync();
+        })
+        .then((data) => {
+          toast.success(`Synced ${data?.synced || 0} events from Google Calendar`);
         })
         .catch((err) => {
           toast.error('Failed to connect: ' + (err.message || 'Unknown error'));
-          setSearchParams({});
+          // Reset flag on error so user can try again
+          oauthProcessedRef.current = false;
         });
     }
   }, [searchParams, user]);
