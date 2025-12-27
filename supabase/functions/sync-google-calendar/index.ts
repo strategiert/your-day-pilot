@@ -1,10 +1,65 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
+import { encode as base64Encode, decode as base64Decode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Encryption utilities (duplicated for edge function isolation)
+async function getEncryptionKey(): Promise<CryptoKey> {
+  const keyString = Deno.env.get("TOKEN_ENCRYPTION_KEY");
+  if (!keyString || keyString.length < 32) {
+    throw new Error("TOKEN_ENCRYPTION_KEY must be at least 32 characters");
+  }
+  
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(keyString.slice(0, 32));
+  
+  return await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "AES-GCM" },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
+async function encryptToken(token: string): Promise<string> {
+  const key = await getEncryptionKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoder = new TextEncoder();
+  
+  const encrypted = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    encoder.encode(token)
+  );
+  
+  // Combine IV + encrypted data
+  const combined = new Uint8Array(iv.length + new Uint8Array(encrypted).length);
+  combined.set(iv);
+  combined.set(new Uint8Array(encrypted), iv.length);
+  
+  return base64Encode(combined.buffer);
+}
+
+async function decryptToken(encryptedToken: string): Promise<string> {
+  const key = await getEncryptionKey();
+  const data = base64Decode(encryptedToken);
+  
+  const iv = data.slice(0, 12);
+  const encrypted = data.slice(12);
+  
+  const decrypted = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    key,
+    encrypted
+  );
+  
+  return new TextDecoder().decode(decrypted);
+}
 
 async function refreshAccessToken(refreshToken: string, clientId: string, clientSecret: string) {
   const response = await fetch("https://oauth2.googleapis.com/token", {
@@ -82,31 +137,47 @@ serve(async (req) => {
       );
     }
 
-    const tokens = connection.tokens_json as { 
+    const tokensData = connection.tokens_json as { 
       access_token: string; 
       refresh_token: string; 
-      expires_at: number; 
+      expires_at: number;
+      encrypted?: boolean;
     };
 
+    // Decrypt tokens if encrypted
+    let accessToken: string;
+    let refreshToken: string;
+    
+    if (tokensData.encrypted) {
+      accessToken = await decryptToken(tokensData.access_token);
+      refreshToken = tokensData.refresh_token ? await decryptToken(tokensData.refresh_token) : "";
+    } else {
+      // Legacy unencrypted tokens - decrypt won't work, use as-is
+      accessToken = tokensData.access_token;
+      refreshToken = tokensData.refresh_token;
+    }
+
     // Refresh token if expired
-    let accessToken = tokens.access_token;
-    if (tokens.expires_at < Date.now()) {
+    if (tokensData.expires_at < Date.now()) {
       console.log("Token expired, refreshing...");
       const newTokens = await refreshAccessToken(
-        tokens.refresh_token,
+        refreshToken,
         GOOGLE_CLIENT_ID,
         GOOGLE_CLIENT_SECRET
       );
       accessToken = newTokens.access_token;
 
-      // Update stored tokens
+      // Encrypt and update stored tokens
+      const encryptedNewAccessToken = await encryptToken(newTokens.access_token);
+      
       await supabase
         .from("calendar_connections")
         .update({
           tokens_json: {
-            ...tokens,
-            access_token: newTokens.access_token,
+            access_token: encryptedNewAccessToken,
+            refresh_token: tokensData.encrypted ? tokensData.refresh_token : await encryptToken(refreshToken),
             expires_at: newTokens.expires_at,
+            encrypted: true,
           },
           updated_at: new Date().toISOString(),
         })

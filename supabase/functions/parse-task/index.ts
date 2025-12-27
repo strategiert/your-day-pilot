@@ -1,9 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Schema for validating AI response
+const taskSchema = z.object({
+  title: z.string().min(1).max(500),
+  due_ts: z.string().optional().nullable(),
+  est_min: z.number().int().positive().max(480).optional().nullable(),
+  priority: z.enum(["p1", "p2", "p3", "p4"]).optional().nullable(),
+  energy: z.enum(["low", "medium", "high"]).optional().nullable(),
+  preferred_window: z.enum(["morning", "afternoon", "evening", "any"]).optional().nullable(),
+  hard_deadline: z.boolean().optional().nullable(),
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -11,6 +24,29 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate user before processing
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const body = await req.json();
     const input = body?.input;
     
@@ -131,13 +167,28 @@ Use the parse_task tool to return the parsed data.`;
     }
 
     const parsedTask = JSON.parse(toolCall.function.arguments);
-    console.log("Task parsed successfully");
+    
+    // Validate AI response against schema
+    const validationResult = taskSchema.safeParse(parsedTask);
+    if (!validationResult.success) {
+      console.error("AI returned invalid task format:", validationResult.error.message);
+      // Return a sanitized version with just the title if validation fails
+      return new Response(JSON.stringify({ 
+        parsed: { 
+          title: typeof parsedTask.title === 'string' ? parsedTask.title.slice(0, 500) : "Untitled Task"
+        } 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
+    console.log("Task parsed and validated successfully");
 
-    return new Response(JSON.stringify({ parsed: parsedTask }), {
+    return new Response(JSON.stringify({ parsed: validationResult.data }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Parse task error:", error);
+    console.error("Parse task error:", error instanceof Error ? error.message : "Unknown error");
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

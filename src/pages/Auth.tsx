@@ -16,6 +16,25 @@ export default function AuthPage() {
   const { user, loading: authLoading, signIn, signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
+  // Check URL for OAuth errors
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get('error');
+    const errorDescription = params.get('error_description');
+    const errorCode = params.get('error_code');
+
+    if (error) {
+      console.error('[Auth] OAuth Error:', {
+        error,
+        errorCode,
+        errorDescription
+      });
+      toast.error(`Google Login failed: ${errorDescription || error}`);
+      // Clean URL
+      window.history.replaceState({}, '', '/auth');
+    }
+  }, []);
+
   // Redirect if already logged in
   useEffect(() => {
     console.log('[Auth] User state changed:', { user: user?.email, authLoading });

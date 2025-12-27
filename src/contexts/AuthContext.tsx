@@ -25,7 +25,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('[AuthContext] Auth state changed:', { event, user: session?.user?.email });
+        console.log('[AuthContext] Auth state changed:', {
+          event,
+          user: session?.user?.email,
+          hasSession: !!session,
+          hasUser: !!session?.user
+        });
+
+        if (event === 'SIGNED_IN' && session) {
+          console.log('[AuthContext] ✅ User successfully signed in!');
+        }
+
+        if (event === 'SIGNED_IN' && !session) {
+          console.error('[AuthContext] ❌ SIGNED_IN event but no session!');
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -33,8 +47,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('[AuthContext] Initial session check:', { user: session?.user?.email });
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('[AuthContext] Initial session check:', {
+        user: session?.user?.email,
+        hasSession: !!session,
+        error: error?.message
+      });
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -67,16 +85,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
+    console.log('[AuthContext] Initiating Google OAuth...');
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
       },
     });
+
+    if (error) {
+      console.error('[AuthContext] Google OAuth error:', error);
+    } else {
+      console.log('[AuthContext] Google OAuth redirect initiated');
+    }
+
     return { error };
   };
 

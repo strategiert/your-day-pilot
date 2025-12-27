@@ -1,0 +1,17 @@
+{
+  "app_name": "FlowPilot",
+  "loading": "Loading...",
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "edit": "Edit",
+  "close": "Close",
+  "confirm": "Confirm",
+  "back": "Back",
+  "next": "Next",
+  "finish": "Finish",
+  "error": "Error",
+  "success": "Success",
+  "warning": "Warning",
+  "info": "Info"
+}

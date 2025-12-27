@@ -8,10 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, Clock, Calendar, Focus, Settings as SettingsIcon } from 'lucide-react';
+import { Loader2, Save, Clock, Calendar, Focus, Languages } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
 import { WorkingHours, DayHours } from '@/types';
+import { useTranslation } from 'react-i18next';
+import { LanguageToggle } from '@/components/LanguageToggle';
 
 const TIMEZONES = [
   'America/New_York',
@@ -41,6 +43,7 @@ const TIMEZONES = [
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 
 export default function SettingsPage() {
+  const { t } = useTranslation('settings');
   const { user, loading: authLoading } = useAuth();
   const { profile, isLoading: profileLoading, updateProfile, isUpdating } = useProfile();
 
@@ -88,10 +91,10 @@ export default function SettingsPage() {
       working_hours_json: workingHours,
     }, {
       onSuccess: () => {
-        toast.success('Settings saved!');
+        toast.success(t('settings_saved'));
       },
       onError: () => {
-        toast.error('Failed to save settings');
+        toast.error(t('failed_to_save'));
       }
     });
   };
@@ -113,8 +116,8 @@ export default function SettingsPage() {
       <div className="p-6 max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Settings</h1>
-            <p className="text-muted-foreground">Customize your scheduling preferences</p>
+            <h1 className="text-3xl font-bold">{t('title')}</h1>
+            <p className="text-muted-foreground">{t('description')}</p>
           </div>
           <Button onClick={handleSave} disabled={isUpdating}>
             {isUpdating ? (
@@ -122,24 +125,38 @@ export default function SettingsPage() {
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            Save Changes
+            {t('save_changes')}
           </Button>
         </div>
 
         <div className="space-y-6">
+          {/* Language */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Languages className="w-5 h-5 text-primary" />
+                {t('language_section.title')}
+              </CardTitle>
+              <CardDescription>{t('language_section.description')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <LanguageToggle />
+            </CardContent>
+          </Card>
+
           {/* Timezone */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="w-5 h-5 text-primary" />
-                Timezone
+                {t('timezone_section.title')}
               </CardTitle>
-              <CardDescription>Set your local timezone for accurate scheduling</CardDescription>
+              <CardDescription>{t('timezone_section.description')}</CardDescription>
             </CardHeader>
             <CardContent>
               <Select value={timezone} onValueChange={setTimezone}>
                 <SelectTrigger className="w-full max-w-sm">
-                  <SelectValue placeholder="Select timezone" />
+                  <SelectValue placeholder={t('timezone_section.select_placeholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {TIMEZONES.map(tz => (
@@ -155,14 +172,14 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Focus className="w-5 h-5 text-primary" />
-                Focus & Buffer Settings
+                {t('focus_section.title')}
               </CardTitle>
-              <CardDescription>Configure how tasks are split and scheduled</CardDescription>
+              <CardDescription>{t('focus_section.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label>Focus Session Length (minutes)</Label>
+                  <Label>{t('focus_section.focus_length')}</Label>
                   <div className="flex items-center gap-4">
                     <Input
                       type="number"
@@ -177,12 +194,12 @@ export default function SettingsPage() {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Tasks longer than this will be split into chunks
+                    {t('focus_section.focus_help')}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Buffer Between Blocks (minutes)</Label>
+                  <Label>{t('focus_section.buffer_length')}</Label>
                   <div className="flex items-center gap-4">
                     <Input
                       type="number"
@@ -192,10 +209,10 @@ export default function SettingsPage() {
                       max={30}
                       className="w-24"
                     />
-                    <span className="text-sm text-muted-foreground">{bufferMin}m break</span>
+                    <span className="text-sm text-muted-foreground">{bufferMin}m {t('focus_section.break')}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Breathing room between scheduled blocks
+                    {t('focus_section.buffer_help')}
                   </p>
                 </div>
               </div>
@@ -207,9 +224,9 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-primary" />
-                Working Hours
+                {t('working_hours_section.title')}
               </CardTitle>
-              <CardDescription>Define when tasks can be scheduled</CardDescription>
+              <CardDescription>{t('working_hours_section.description')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -219,7 +236,7 @@ export default function SettingsPage() {
                       checked={!!workingHours[day]}
                       onCheckedChange={() => toggleDay(day)}
                     />
-                    <span className="w-28 capitalize font-medium">{day}</span>
+                    <span className="w-28 font-medium">{t(`working_hours_section.days.${day}`)}</span>
                     {workingHours[day] ? (
                       <div className="flex items-center gap-2">
                         <Input
@@ -228,7 +245,7 @@ export default function SettingsPage() {
                           onChange={(e) => updateDayHours(day, 'start', e.target.value)}
                           className="w-32"
                         />
-                        <span className="text-muted-foreground">to</span>
+                        <span className="text-muted-foreground">{t('working_hours_section.to')}</span>
                         <Input
                           type="time"
                           value={workingHours[day]?.end || '17:00'}
@@ -237,7 +254,7 @@ export default function SettingsPage() {
                         />
                       </div>
                     ) : (
-                      <span className="text-sm text-muted-foreground">Day off</span>
+                      <span className="text-sm text-muted-foreground">{t('working_hours_section.day_off')}</span>
                     )}
                   </div>
                 ))}

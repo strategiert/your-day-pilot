@@ -1,10 +1,65 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
+import { encode as base64Encode, decode as base64Decode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Encryption utilities
+async function getEncryptionKey(): Promise<CryptoKey> {
+  const keyString = Deno.env.get("TOKEN_ENCRYPTION_KEY");
+  if (!keyString || keyString.length < 32) {
+    throw new Error("TOKEN_ENCRYPTION_KEY must be at least 32 characters");
+  }
+  
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(keyString.slice(0, 32));
+  
+  return await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "AES-GCM" },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
+async function encryptToken(token: string): Promise<string> {
+  const key = await getEncryptionKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoder = new TextEncoder();
+  
+  const encrypted = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    encoder.encode(token)
+  );
+  
+  // Combine IV + encrypted data
+  const combined = new Uint8Array(iv.length + new Uint8Array(encrypted).length);
+  combined.set(iv);
+  combined.set(new Uint8Array(encrypted), iv.length);
+  
+  return base64Encode(combined.buffer);
+}
+
+async function decryptToken(encryptedToken: string): Promise<string> {
+  const key = await getEncryptionKey();
+  const data = base64Decode(encryptedToken);
+  
+  const iv = data.slice(0, 12);
+  const encrypted = data.slice(12);
+  
+  const decrypted = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    key,
+    encrypted
+  );
+  
+  return new TextDecoder().decode(decrypted);
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -98,7 +153,11 @@ serve(async (req) => {
         );
       }
 
-      // Store tokens in calendar_connections
+      // Encrypt tokens before storing
+      const encryptedAccessToken = await encryptToken(tokens.access_token);
+      const encryptedRefreshToken = tokens.refresh_token ? await encryptToken(tokens.refresh_token) : null;
+
+      // Store encrypted tokens in calendar_connections
       const { error: insertError } = await supabase
         .from("calendar_connections")
         .upsert({
@@ -106,9 +165,10 @@ serve(async (req) => {
           provider: "google",
           status: "connected",
           tokens_json: {
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
+            access_token: encryptedAccessToken,
+            refresh_token: encryptedRefreshToken,
             expires_at: Date.now() + tokens.expires_in * 1000,
+            encrypted: true,
           },
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id,provider" });
@@ -170,3 +230,6 @@ serve(async (req) => {
     );
   }
 });
+
+// Export decrypt function for use by sync function
+export { decryptToken };

@@ -1,0 +1,44 @@
+{
+  "title": "Einstellungen",
+  "description": "Passen Sie Ihre Planungspräferenzen an",
+  "save_changes": "Änderungen speichern",
+  "settings_saved": "Einstellungen gespeichert!",
+  "failed_to_save": "Fehler beim Speichern der Einstellungen",
+
+  "language_section": {
+    "title": "Sprache",
+    "description": "Wählen Sie Ihre bevorzugte Sprache"
+  },
+
+  "timezone_section": {
+    "title": "Zeitzone",
+    "description": "Legen Sie Ihre lokale Zeitzone für eine genaue Planung fest",
+    "select_placeholder": "Zeitzone auswählen"
+  },
+
+  "focus_section": {
+    "title": "Fokus- und Puffer-Einstellungen",
+    "description": "Konfigurieren Sie, wie Aufgaben aufgeteilt und geplant werden",
+    "focus_length": "Fokussitzungslänge (Minuten)",
+    "focus_help": "Aufgaben, die länger sind, werden in Abschnitte aufgeteilt",
+    "buffer_length": "Puffer zwischen Blöcken (Minuten)",
+    "buffer_help": "Atempause zwischen geplanten Blöcken",
+    "break": "Pause"
+  },
+
+  "working_hours_section": {
+    "title": "Arbeitszeiten",
+    "description": "Definieren Sie, wann Aufgaben geplant werden können",
+    "day_off": "Frei",
+    "to": "bis",
+    "days": {
+      "monday": "Montag",
+      "tuesday": "Dienstag",
+      "wednesday": "Mittwoch",
+      "thursday": "Donnerstag",
+      "friday": "Freitag",
+      "saturday": "Samstag",
+      "sunday": "Sonntag"
+    }
+  }
+}
