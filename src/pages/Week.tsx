@@ -12,7 +12,7 @@ import { Navigate } from 'react-router-dom';
 export default function WeekPage() {
   const { user, loading: authLoading } = useAuth();
   const { profile, isLoading: profileLoading } = useProfile();
-  const { schedule, isScheduling } = useScheduler();
+  const { schedule, isScheduling, canSchedule } = useScheduler();
 
   if (authLoading || profileLoading) {
     return (
@@ -44,7 +44,8 @@ export default function WeekPage() {
             <Button
               variant="glow"
               onClick={() => schedule()}
-              disabled={isScheduling}
+              disabled={isScheduling || !canSchedule}
+              title={!canSchedule ? 'Loading profile...' : ''}
             >
               {isScheduling ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />

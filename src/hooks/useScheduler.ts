@@ -115,7 +115,8 @@ export function useScheduler() {
 
   const scheduleMutation = useMutation({
     mutationFn: async () => {
-      if (!user || !profile) throw new Error('Not authenticated');
+      if (!user) throw new Error('Not authenticated');
+      if (!profile) throw new Error('Profile not loaded. Please wait or refresh the page.');
 
       // DEBUG: Log loaded events
       console.log('[Scheduler] Loaded events:', events.length);
@@ -288,5 +289,6 @@ export function useScheduler() {
   return {
     schedule: scheduleMutation.mutate,
     isScheduling: scheduleMutation.isPending,
+    canSchedule: !!user && !!profile,
   };
 }

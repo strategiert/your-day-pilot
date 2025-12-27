@@ -16,6 +16,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { QuickAddDialog } from '@/components/QuickAddDialog';
 import { useState } from 'react';
 
 interface NavItemProps {
@@ -48,6 +49,7 @@ function NavItem({ to, icon: Icon, label, collapsed }: NavItemProps) {
 export function AppSidebar() {
   const { signOut, user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   return (
     <aside
@@ -74,6 +76,7 @@ export function AppSidebar() {
           variant="glow"
           size={collapsed ? 'icon' : 'default'}
           className={cn('w-full', collapsed && 'px-0')}
+          onClick={() => setQuickAddOpen(true)}
         >
           <Plus className="w-4 h-4" />
           {!collapsed && <span>Quick Add</span>}
@@ -124,6 +127,9 @@ export function AppSidebar() {
           {!collapsed && <span className="text-sm">Sign Out</span>}
         </button>
       </div>
+
+      {/* Quick Add Dialog */}
+      <QuickAddDialog open={quickAddOpen} onOpenChange={setQuickAddOpen} />
     </aside>
   );
 }

@@ -179,9 +179,11 @@ interface TaskFormData {
 
 export function TaskList() {
   const { tasks, isLoading, createTask, updateTask, deleteTask, isCreating } = useTasks();
-  const { projects } = useProjects();
+  const { projects, createProject } = useProjects();
   const { parseTask, isParsing } = useTaskParser();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
   const [quickAddInput, setQuickAddInput] = useState('');
   const quickAddRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<TaskFormData>({
@@ -197,9 +199,34 @@ export function TaskList() {
     hard_deadline: false,
   });
 
+  const handleCreateProject = () => {
+    if (!newProjectName.trim()) {
+      toast.error('Please enter a project name');
+      return;
+    }
+
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+    createProject({
+      name: newProjectName,
+      color: randomColor,
+    }, {
+      onSuccess: (newProject) => {
+        toast.success('Project created!');
+        setFormData(prev => ({ ...prev, project_id: newProject.id }));
+        setNewProjectName('');
+        setIsProjectDialogOpen(false);
+      },
+      onError: () => {
+        toast.error('Failed to create project');
+      },
+    });
+  };
+
   const handleQuickAdd = async () => {
     if (!quickAddInput.trim() || isParsing) return;
-    
+
     const parsed = await parseTask(quickAddInput);
     if (parsed) {
       // Format due_ts for datetime-local input if present
@@ -212,7 +239,7 @@ export function TaskList() {
           formattedDueTs = '';
         }
       }
-      
+
       setFormData({
         title: parsed.title,
         description: '',
@@ -372,20 +399,31 @@ export function TaskList() {
 
                 <div className="space-y-2">
                   <Label>Project</Label>
-                  <Select
-                    value={formData.project_id}
-                    onValueChange={(v) => setFormData(prev => ({ ...prev, project_id: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="No project" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No project</SelectItem>
-                      {projects.map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select
+                      value={formData.project_id}
+                      onValueChange={(v) => setFormData(prev => ({ ...prev, project_id: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="No project" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No project</SelectItem>
+                        {projects.map(p => (
+                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setIsProjectDialogOpen(true)}
+                      title="Create new project"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -471,6 +509,51 @@ export function TaskList() {
                 {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Task'}
               </Button>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Quick Project Creation Dialog */}
+        <Dialog open={isProjectDialogOpen} onOpenChange={setIsProjectDialogOpen}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>Create New Project</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Project Name</Label>
+                <Input
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  placeholder="e.g., Website Redesign"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCreateProject();
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsProjectDialogOpen(false);
+                    setNewProjectName('');
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleCreateProject}
+                  disabled={!newProjectName.trim()}
+                >
+                  Create Project
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
