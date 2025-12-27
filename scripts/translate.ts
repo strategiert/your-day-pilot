@@ -3,7 +3,12 @@
  * Translation script using DeepL API
  *
  * Usage:
+ *   npm run translate
+ *
+ *   OR with inline API key:
  *   DEEPL_API_KEY=your_key_here npm run translate
+ *
+ * The script will load DEEPL_API_KEY from .env file or environment variable.
  *
  * This script will:
  * 1. Read all English translation files from src/i18n/locales/en/
@@ -13,6 +18,10 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { config } from 'dotenv';
+
+// Load environment variables from .env file
+config();
 
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY;
 const DEEPL_API_URL = 'https://api-free.deepl.com/v2/translate';
