@@ -233,11 +233,33 @@ serve(async (req) => {
     let syncedCount = 0;
     for (const gEvent of googleEvents) {
       if (!gEvent.start?.dateTime && !gEvent.start?.date) continue;
-      
-      const startTs = gEvent.start.dateTime || `${gEvent.start.date}T00:00:00Z`;
-      const endTs = gEvent.end?.dateTime || gEvent.end?.date 
-        ? (gEvent.end.dateTime || `${gEvent.end.date}T23:59:59Z`)
-        : startTs;
+
+      // FIXED: Preserve original timezone from Google Calendar
+      // For all-day events, use date without timezone conversion
+      let startTs: string;
+      let endTs: string;
+
+      if (gEvent.start.dateTime) {
+        // Event has specific time - use as-is (preserves timezone)
+        startTs = gEvent.start.dateTime;
+      } else {
+        // All-day event - treat as midnight in local timezone, not UTC
+        // This prevents shifting to previous day when displayed
+        startTs = `${gEvent.start.date}T00:00:00`;
+      }
+
+      if (gEvent.end?.dateTime) {
+        endTs = gEvent.end.dateTime;
+      } else if (gEvent.end?.date) {
+        // For all-day events, Google sends end date as the day AFTER
+        // Use 23:59:59 of the previous day to show correct date
+        const endDate = new Date(gEvent.end.date);
+        endDate.setDate(endDate.getDate() - 1);
+        const endDateStr = endDate.toISOString().split('T')[0];
+        endTs = `${endDateStr}T23:59:59`;
+      } else {
+        endTs = startTs;
+      }
 
       const { error: upsertError } = await supabase
         .from("events")
