@@ -1,73 +1,174 @@
-# Welcome to your Lovable project
+# FlowPilot (Your Day Pilot)
 
-## Project info
+**AI-powered task scheduling and calendar management application**
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+FlowPilot is an intelligent productivity app that helps you manage your tasks, schedule your day, and sync with Google Calendar. It uses AI to automatically parse tasks and optimize your schedule based on your working hours and preferences.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- 🤖 **AI-Powered Task Parsing** - Automatically extracts task details, deadlines, and priorities from natural language
+- 📅 **Smart Scheduling** - Optimizes your schedule based on task priorities, energy levels, and working hours
+- 🔗 **Google Calendar Integration** - Sync events bidirectionally with your Google Calendar
+- 🌍 **Multi-Language Support** - Available in English, German, Spanish, French, and Italian with automatic geo-location detection
+- 📊 **Progress Tracking** - Track habits, monitor task completion, and visualize your productivity
+- 🔐 **Secure** - End-to-end encryption for OAuth tokens using AES-256-GCM
+- 🎨 **Modern UI** - Built with React, TypeScript, and shadcn/ui components
 
-**Use Lovable**
+## Tech Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- **Frontend**: React 18, TypeScript, Vite
+- **UI**: shadcn/ui, Tailwind CSS, Radix UI
+- **Backend**: Supabase (PostgreSQL + Edge Functions)
+- **AI**: OpenAI GPT for task parsing
+- **Authentication**: Supabase Auth with Google OAuth
+- **Internationalization**: react-i18next with DeepL translations
+- **State Management**: TanStack Query (React Query)
 
-Changes made via Lovable will be committed automatically to this repo.
+## Getting Started
 
-**Use your preferred IDE**
+### Prerequisites
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Node.js 18+ and npm
+- Supabase account
+- Google Cloud Console project (for OAuth)
+- OpenAI API key (optional, for AI features)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Installation
 
-Follow these steps:
-
+1. **Clone the repository**
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
+cd your-day-pilot
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. **Install dependencies**
+```sh
+npm install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3. **Set up environment variables**
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+Create a `.env` file in the root directory:
+
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
+VITE_SUPABASE_PROJECT_ID=your_project_id
+```
+
+4. **Start the development server**
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will be available at `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Database Setup
 
-**Use GitHub Codespaces**
+The project uses Supabase for the database. Migrations are located in `supabase/migrations/`.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+To apply migrations:
+```sh
+# Using Supabase CLI
+supabase db push
 
-## What technologies are used for this project?
+# Or apply them manually in the Supabase Dashboard
+```
 
-This project is built with:
+### Edge Functions
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+The project uses Supabase Edge Functions for:
+- `parse-task` - AI-powered task parsing
+- `google-calendar-auth` - Google Calendar OAuth flow
+- `sync-google-calendar` - Bidirectional calendar sync
+- `weekly-summary` - Generate weekly productivity summaries
 
-## How can I deploy this project?
+Required Edge Function secrets:
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `TOKEN_ENCRYPTION_KEY` (32+ characters)
+- `OPENAI_API_KEY` (optional)
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Project Structure
 
-## Can I connect a custom domain to my Lovable project?
+```
+your-day-pilot/
+├── src/
+│   ├── components/       # Reusable UI components
+│   ├── contexts/         # React contexts (Auth, etc.)
+│   ├── hooks/           # Custom React hooks
+│   ├── i18n/            # Internationalization files
+│   ├── integrations/    # Third-party integrations (Supabase)
+│   ├── pages/           # Route pages
+│   └── types/           # TypeScript type definitions
+├── supabase/
+│   ├── functions/       # Edge Functions (Deno)
+│   └── migrations/      # Database migrations
+├── docs/                # Documentation
+└── scripts/             # Utility scripts (e.g., DeepL translation)
+```
 
-Yes, you can!
+## Development
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Running Tests
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```sh
+npm run test
+```
+
+### Building for Production
+
+```sh
+npm run build
+```
+
+### Linting
+
+```sh
+npm run lint
+```
+
+## Internationalization
+
+The app supports 5 languages with automatic detection:
+1. User preference (localStorage)
+2. Geo-location (IP-based via ipapi.co)
+3. Browser language
+4. Default (English)
+
+### Adding Translations
+
+Use the DeepL translation script:
+
+```sh
+DEEPL_API_KEY=your_key npm run translate
+```
+
+This will automatically translate all English strings to German, Spanish, French, and Italian.
+
+## Security
+
+- OAuth tokens are encrypted using AES-256-GCM before storage
+- All API inputs are validated using Zod schemas
+- Row Level Security (RLS) enabled on all database tables
+- See `SECURITY.md` for complete security documentation
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License.
+
+## Support
+
+For issues, questions, or feature requests, please open an issue on GitHub.
+
+---
+
+**Built with ❤️ using modern web technologies**
